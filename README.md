@@ -96,7 +96,7 @@ El agente puede proponerte drafts de estos archivos conforme trabajan juntos, pe
 
 | Archivo | Cuando se actualiza |
 |---------|---------------------|
-| `WORKING_STATE.md` | Al cierre de cada sesion — el agente propone el nuevo estado |
+| `WORKING_STATE.md` | Despues de cada tarea completada — el agente actualiza lo hecho y lo que sigue |
 | `.product/memory/YYYY-MM-DD.md` | Durante la sesion — logs diarios, append-only |
 | `.product/memory/MEMORY.md` | Cuando hay hechos duraderos nuevos (lecciones, preferencias) |
 | `.product/context/DECISIONS.md` | Cuando se toma una decision arquitectonica (ADRs) |

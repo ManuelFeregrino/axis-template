@@ -1,12 +1,12 @@
 ---
 name: session-protocol
-description: Protocolo de inicio y cierre de sesion de trabajo. Incluye memory flush y ritual de cierre.
-triggers: Al iniciar una sesion de trabajo o cuando se pide cerrar sesion / memory flush.
+description: Protocolo de inicio de sesion, actualizacion de estado tras cada tarea, y memory flush.
+triggers: Al iniciar una sesion de trabajo o cuando se pide memory flush.
 dependencies: WORKING_STATE.md, .product/memory/
 ---
 
 ## Contexto
-Este skill define como el agente debe iniciar y cerrar cada sesion de trabajo para garantizar continuidad entre sesiones. Sin este protocolo, el contexto se pierde y cada sesion empieza de cero.
+Este skill define como el agente gestiona el estado del proyecto durante una sesion. El principio clave: actualizar `WORKING_STATE.md` despues de cada tarea completada, no al cierre de sesion (porque al cerrar sesion el agente ya no puede escribir).
 
 ## Protocolo de Inicio
 
@@ -17,6 +17,19 @@ Este skill define como el agente debe iniciar y cerrar cada sesion de trabajo pa
 5. Cargar skills y documentos de `.product/` segun lo que la tarea requiera
 
 **NO cargar todo de golpe.** Seguir el mapa de progressive disclosure en AGENT_CONTEXT.md.
+
+## Actualizacion de Estado (despues de cada tarea)
+
+Despues de completar cada tarea, actualizar `WORKING_STATE.md`:
+1. Mover la tarea completada a "Completado en Ultima Sesion"
+2. Actualizar "En Progreso" con el estado real
+3. Ajustar "Proxima Sesion" si cambio la prioridad
+4. Agregar blockers si aparecieron
+
+Tambien:
+- Anadir entrada a `.product/memory/YYYY-MM-DD.md` (append, no sobrescribir)
+- Si hay hechos duraderos nuevos -> proponer actualizacion de MEMORY.md
+- Si hubo decision arquitectonica -> proponer ADR en DECISIONS.md
 
 ## Protocolo de Memory Flush
 
@@ -36,41 +49,11 @@ Que hacer:
 - **Lecciones:** [errores, patrones descubiertos]
 ```
 2. Si hay algo que deba recordarse siempre -> proponer actualizacion de `.product/memory/MEMORY.md`
-3. Actualizar `WORKING_STATE.md`
-
-## Protocolo de Cierre de Sesion
-
-Al final de cada sesion, generar:
-
-```markdown
-## Resumen de sesion — [fecha HH:MM]
-
-### Completado
-- [tarea: resultado concreto y archivos modificados]
-
-### Pendiente
-- [tarea: contexto especifico para retomar sin friccion]
-
-### Decisiones tomadas
-- [decision: razon — ADR pendiente si/no]
-
-### Propuesta: Log diario (.product/memory/YYYY-MM-DD.md)
-[Entrada append para el log diario]
-
-### Propuesta: WORKING_STATE.md
-[Contenido actualizado]
-
-### Propuesta: MEMORY.md
-[Diff o "sin cambios necesarios"]
-
-### Propuesta: AGENT_CONTEXT.md
-[Diff o "sin cambios necesarios"]
-```
-
-El responsable revisa, ajusta y hace commit. El agente NO hace commit directamente.
+3. Verificar que `WORKING_STATE.md` este al dia
 
 ## Reglas
 1. NUNCA sobrescribir entradas anteriores en logs diarios — solo append
 2. WORKING_STATE.md se sobrescribe completo (es estado actual, no historial)
 3. MEMORY.md se propone como diff — el responsable decide que se queda
 4. Si no hay nada significativo que reportar, decir "sesion sin cambios relevantes"
+5. No esperar al cierre de sesion para actualizar estado — hacerlo despues de cada tarea

@@ -77,3 +77,9 @@ git commit -m "wip"
 
 ### X Merge directo a main sin PR
 **Por que no:** El PR es el momento de revision humana. Sin PR no hay validacion.
+
+## Pre-commit: verificar WORKING_STATE.md
+
+Antes de hacer commit, verificar que `WORKING_STATE.md` refleje el estado actual del trabajo. Si la tarea que se esta commiteando cambio lo que esta en progreso o lo que sigue, actualizar `WORKING_STATE.md` e incluirlo en el commit.
+
+No todos los commits requieren actualizarlo — un fix de typo o ajuste de config no lo amerita. Pero si el commit cierra una tarea, agrega una feature, o cambia la direccion del trabajo, `WORKING_STATE.md` debe reflejarlo.

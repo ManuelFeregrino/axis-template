@@ -56,6 +56,15 @@ Cuando el agente encuentra una situacion no cubierta por las instrucciones:
 4. Cargar solo los skills relevantes para la tarea actual
 5. NO cargar todo — seguir el mapa de AGENT_CONTEXT.md
 
+### Actualizacion de estado (despues de cada tarea)
+Despues de completar cada tarea, actualizar `WORKING_STATE.md` con lo hecho y lo que sigue.
+Tambien:
+1. Anadir entrada a `.product/memory/YYYY-MM-DD.md` (append, nunca sobrescribir)
+2. Si hay hechos duraderos nuevos -> proponer cambio a MEMORY.md
+3. Si hubo decision arquitectonica -> proponer ADR en DECISIONS.md
+
+No esperar al cierre de sesion — al cerrar, el agente ya no puede escribir.
+
 ### Protocolo de memory flush
 **Ejecutar cuando:**
 - La sesion ha sido larga (>20 turnos)
@@ -66,18 +75,7 @@ Cuando el agente encuentra una situacion no cubierta por las instrucciones:
 **Que hacer:**
 1. Anadir notas a `.product/memory/YYYY-MM-DD.md` (append, nunca sobrescribir)
 2. Si hay algo que deba recordarse siempre -> proponer cambio a MEMORY.md
-3. Actualizar WORKING_STATE.md
-4. Si hubo decision arquitectonica -> proponer ADR en DECISIONS.md
-
-### Protocolo de cierre de sesion
-Generar al final de cada sesion:
-1. **Log diario** — entrada para `.product/memory/YYYY-MM-DD.md`
-2. **WORKING_STATE.md** — propuesta de actualizacion
-3. **MEMORY.md** — propuesta de actualizacion (si hay hechos nuevos)
-4. **AGENT_CONTEXT.md** — propuesta de actualizacion (si algo cambio)
-5. **DECISIONS.md** — propuesta de ADR (si hubo decision de arquitectura)
-
-El responsable revisa, ajusta y hace commit. El agente NO hace commit.
+3. Verificar que WORKING_STATE.md este al dia
 
 ### Reglas de tamano
 - No generar archivos de contexto > 5,000 tokens sin autorizacion del responsable

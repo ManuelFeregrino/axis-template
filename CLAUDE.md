@@ -23,7 +23,8 @@
    - Arquitectura -> `.product/context/DECISIONS.md` + `.product/architecture/OVERVIEW.md`
    - Testing -> skill `[testing]`
    - Deploy -> `.product/operations/RELEASE_CHECKLIST.md`
-4. Al terminar -> ejecuta ritual de cierre (skill `session-protocol`)
+4. Al completar cada tarea -> actualiza `WORKING_STATE.md` con lo hecho y lo que sigue
+5. Al hacer commit -> verifica que `WORKING_STATE.md` refleje el estado actual
 
 ## Skills Disponibles
 | Skill | Cuando activarlo |

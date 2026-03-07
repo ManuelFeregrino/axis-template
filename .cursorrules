@@ -30,8 +30,8 @@ Al iniciar:
    - Testing -> lee el skill de testing en .claude/skills/testing/SKILL.md
    - Deploy -> lee .product/operations/RELEASE_CHECKLIST.md
 
-Al terminar:
-1. Propon actualizacion de WORKING_STATE.md
+Al completar cada tarea:
+1. Actualiza WORKING_STATE.md con lo hecho y lo que sigue
 2. Anade entrada al log diario en .product/memory/YYYY-MM-DD.md (append, no sobrescribir)
 3. Si hay hechos duraderos nuevos -> propon actualizacion de .product/memory/MEMORY.md
 4. Si hubo decision de arquitectura -> propon ADR en .product/context/DECISIONS.md
