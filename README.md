@@ -80,7 +80,7 @@ Rellena estos archivos con la informacion de tu proyecto:
 | `.product/context/PRODUCT.md` | Que hace el producto y para quien |
 | `.product/architecture/OVERVIEW.md` | Stack, diagrama, patrones |
 
-Los demas archivos en `.product/` se van llenando conforme el proyecto avanza.
+Los demas archivos en `.product/` los llenas tu conforme el proyecto avanza — el agente puede proponerte drafts, pero tu revisas y haces commit. Estos archivos contienen conocimiento del producto (modelo de negocio, riesgos, amenazas, procedimientos de deploy) que solo tu tienes.
 
 ## Como funciona
 
