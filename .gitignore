@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+vendor/
+.gradle/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+out/
+target/
+
+# Logs
+*.log
+
+# Claude Code config local (NO versionar)
+.claude/settings*
+.claude/cache/
+
+# ===================================================
+# IMPORTANTE: NO ignorar el sistema AXIS
+# Estos directorios SI deben versionarse
+# ===================================================
+# .product/          -> Cerebro del producto
+# .claude/skills/    -> Skills del agente
+# .product/memory/   -> Logs diarios de memoria

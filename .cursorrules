@@ -1,0 +1,62 @@
+# [NOMBRE DEL PRODUCTO] — Reglas para Cursor/Windsurf
+#
+# AXIS Blueprint
+# Sincronizado con CLAUDE.md — actualizar ambos cuando cambie uno.
+# Si usas Claude Code, CLAUDE.md es tu archivo principal.
+# Si usas Cursor o Windsurf, este archivo es tu equivalente.
+
+## Identidad
+[Reemplazar: 1-2 lineas de que es, para quien, stack principal]
+
+## Estado Actual
+- Fase: [Construccion / Validacion / Produccion]
+- Foco actual: [que estamos haciendo ahora]
+- Ultimo cambio: [fecha + que cambio]
+- Proximo objetivo: [que sigue]
+
+## Reglas Inquebrantables
+1. [Regla de seguridad mas critica]
+2. [Restriccion arquitectonica fundamental]
+3. [Convencion obligatoria mas importante]
+
+## Protocolo de Sesion
+Al iniciar:
+1. Lee WORKING_STATE.md para saber donde quedamos
+2. Lee .product/memory/MEMORY.md si necesitas contexto de largo plazo
+3. Consulta segun la tarea:
+   - Codigo nuevo -> lee el skill relevante en .claude/skills/[nombre]/SKILL.md + .product/architecture/OVERVIEW.md
+   - Debugging -> lee .product/architecture/COMPONENTS.md
+   - Arquitectura -> lee .product/context/DECISIONS.md + .product/architecture/OVERVIEW.md
+   - Testing -> lee el skill de testing en .claude/skills/testing/SKILL.md
+   - Deploy -> lee .product/operations/RELEASE_CHECKLIST.md
+
+Al terminar:
+1. Propon actualizacion de WORKING_STATE.md
+2. Anade entrada al log diario en .product/memory/YYYY-MM-DD.md (append, no sobrescribir)
+3. Si hay hechos duraderos nuevos -> propon actualizacion de .product/memory/MEMORY.md
+4. Si hubo decision de arquitectura -> propon ADR en .product/context/DECISIONS.md
+
+## Skills Disponibles
+Las skills viven en .claude/skills/[nombre]/SKILL.md
+Lee el SKILL.md completo cuando la tarea lo requiera.
+
+Skills instaladas:
+| Skill | Cuando activarlo |
+|-------|-----------------|
+| session-protocol | Inicio y cierre de sesion |
+| commit-and-pr | Hacer commits o PRs |
+| adr | Documentar decisiones arquitectonicas |
+
+## Estructura del Proyecto
+- .product/context/ -> Que es el producto y para quien (negocio)
+- .product/architecture/ -> Como esta construido (tecnico)
+- .product/operations/ -> Como se opera (deploy, incidentes)
+- .product/security/ -> Como se protege (politicas, amenazas)
+- .product/contracts/ -> Como trabaja el agente (autonomia, protocolos)
+- .product/memory/ -> Que recuerda el producto (logs, hechos duraderos)
+- .claude/skills/ -> Capacidades del agente (skills)
+
+## Reglas de Tamano
+- No generar archivos de contexto > 5,000 tokens sin autorizacion
+- Logs diarios son append-only — nunca editar entradas anteriores
+- MEMORY.md debe mantenerse bajo 3,000 tokens

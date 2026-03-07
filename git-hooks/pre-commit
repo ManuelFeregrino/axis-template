@@ -1,0 +1,20 @@
+#!/bin/bash
+# pre-commit hook para AXIS
+# Instalar: ./scripts/install-git-hooks.sh
+#
+# Este hook se ejecuta automaticamente antes de cada commit.
+# Sincroniza WORKING_STATE.md -> CLAUDE.md para que el estado
+# del producto siempre este en el archivo que Claude Code auto-carga.
+
+# --- Sync WORKING_STATE.md -> CLAUDE.md ---
+# Solo ejecutar si WORKING_STATE.md esta en el commit (fue modificado)
+if git diff --cached --name-only | grep -q "WORKING_STATE.md"; then
+    if [ -f "scripts/sync-working-state.sh" ]; then
+        bash scripts/sync-working-state.sh
+    fi
+fi
+
+# --- Validar tokens (opcional, descomenta para activar) ---
+# Descomentar la siguiente linea para bloquear commits que excedan
+# los limites de tokens. Util para equipos estrictos.
+# bash scripts/validate-axis-tokens.sh --ci
