@@ -27,6 +27,11 @@ Si durante la sesion se tomo alguna decision arquitectonica que no se documento:
 - Proponer crear un ADR en `.product/context/DECISIONS.md`
 - Seguir el formato del skill `adr`
 
+### Paso 3.5 — Sugerir sync de Jira
+Si hay tasks con Jira keys (patron PROJ-XXX) en "Completado en Ultima Sesion" o "Blockers":
+- Mencionar: "Hay X tasks con Jira keys que cambiaron de status. Considera ejecutar `/sync-jira` para actualizar Jira."
+- NO ejecutar automaticamente — solo sugerir.
+
 ### Paso 4 — Reporte de cierre
 Presentar resumen al usuario:
 
@@ -36,6 +41,7 @@ Presentar resumen al usuario:
 **Actualizado:** WORKING_STATE.md
 **MEMORY.md:** [sin cambios / propuesta de cambio pendiente]
 **ADRs:** [ninguno / ADR-XXX propuesto]
+**Jira sync:** [sin tasks Jira / X tasks pendientes de sync — /sync-jira]
 **Log diario:** [no aplica / entrada anadida]
 
 Estado guardado. La proxima sesion puede retomar desde WORKING_STATE.md.

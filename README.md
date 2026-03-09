@@ -102,6 +102,7 @@ En Claude Code se invocan como `/nombre`:
 | `/update-memory` | Revisa MEMORY.md, archiva items obsoletos | Cuando la memoria crece o se siente desactualizada |
 | `/sync-context` | Verifica integridad de referencias y sync de bootstrap | Cuando sospechas que algo esta desincronizado |
 | `/import-jira` | Importa Epic/Stories/Tasks de Jira y los mapea a archivos AXIS | Al iniciar trabajo sobre un Epic de Jira |
+| `/sync-jira` | Sincroniza estado de tasks entre AXIS y Jira (push/pull) | Despues de completar tasks con Jira keys |
 
 ---
 
@@ -218,7 +219,7 @@ Si un recurso externo (Confluence, Notion, wiki) se consulta mas de 2 veces, per
 
 Los skills son instrucciones modulares que el agente carga solo cuando las necesita. Viven en `.claude/skills/[nombre]/SKILL.md`.
 
-El template incluye 8 skills:
+El template incluye 9 skills:
 
 | Skill | Tipo | Que hace |
 |-------|------|----------|
@@ -227,6 +228,7 @@ El template incluye 8 skills:
 | `update-memory` | Comando | Revisa MEMORY.md y archiva items obsoletos |
 | `sync-context` | Comando | Verifica integridad de referencias y sync de bootstrap |
 | `import-jira` | Comando | Importa Epic/Stories/Tasks de Jira a archivos AXIS |
+| `sync-jira` | Comando | Sincroniza estado de tasks entre AXIS y Jira |
 | `session-protocol` | Referencia | Protocolo completo de sesion |
 | `commit-and-pr` | Referencia | Conventional Commits, branching, estructura de PRs |
 | `adr` | Referencia | Formato y proceso para Architecture Decision Records |
@@ -300,6 +302,7 @@ proyecto/
 │   ├── update-memory/SKILL.md         # /update-memory
 │   ├── sync-context/SKILL.md          # /sync-context
 │   ├── import-jira/SKILL.md           # /import-jira
+│   ├── sync-jira/SKILL.md            # /sync-jira
 │   ├── session-protocol/SKILL.md      # Referencia de protocolo
 │   ├── commit-and-pr/SKILL.md         # Commits y PRs
 │   └── adr/SKILL.md                   # Architecture Decision Records

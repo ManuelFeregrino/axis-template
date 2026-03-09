@@ -48,6 +48,7 @@ Skills instaladas:
 | update-memory | Revisar y limpiar MEMORY.md |
 | sync-context | Verificar integridad del contexto |
 | import-jira | Importar Epic/Stories/Tasks de Jira |
+| sync-jira | Sincronizar estado de tasks con Jira |
 | session-protocol | Referencia completa del protocolo de sesion |
 | commit-and-pr | Hacer commits o PRs |
 | adr | Documentar decisiones arquitectonicas |

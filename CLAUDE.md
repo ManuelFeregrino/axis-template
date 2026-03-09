@@ -35,6 +35,7 @@
 | update-memory | `/update-memory` — Revisar y limpiar MEMORY.md |
 | sync-context | `/sync-context` — Verificar integridad del contexto |
 | import-jira | `/import-jira` — Importar Epic/Stories/Tasks de Jira |
+| sync-jira | `/sync-jira` — Sincronizar estado de tasks con Jira |
 | session-protocol | Referencia completa del protocolo de sesion |
 | commit-and-pr | Hacer commits o PRs |
 | adr | Documentar decisiones arquitectonicas |
