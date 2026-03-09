@@ -1,12 +1,14 @@
 #!/bin/bash
 # sync-working-state.sh
-# Sincroniza el estado de WORKING_STATE.md en la seccion "Estado Actual" de CLAUDE.md
+# Sincroniza el estado de WORKING_STATE.md en la seccion "Estado Actual" de
+# CLAUDE.md y .cursorrules (si existe).
 #
 # Por que existe este script?
-# Claude Code SOLO auto-carga CLAUDE.md. WORKING_STATE.md NO se auto-carga —
-# depende de que el agente siga la instruccion y lo lea activamente.
+# Claude Code SOLO auto-carga CLAUDE.md. Cursor/Windsurf solo auto-cargan
+# .cursorrules. WORKING_STATE.md NO se auto-carga — depende de que el agente
+# siga la instruccion y lo lea activamente.
 # Este script inyecta las primeras lineas de WORKING_STATE.md directamente
-# en CLAUDE.md para que el estado siempre este en el bootstrap auto-cargado.
+# en ambos archivos bootstrap para que el estado siempre este auto-cargado.
 #
 # Cuando se ejecuta:
 # - Automaticamente como git pre-commit hook
@@ -15,8 +17,8 @@
 # Que hace:
 # 1. Lee las secciones clave de WORKING_STATE.md
 # 2. Genera un resumen compacto (max ~300 tokens)
-# 3. Reemplaza la seccion "## Estado Actual" en CLAUDE.md
-# 4. Si CLAUDE.md cambio, lo agrega al commit automaticamente
+# 3. Reemplaza la seccion "## Estado Actual" en CLAUDE.md y .cursorrules
+# 4. Si los archivos cambiaron, los agrega al commit automaticamente
 #
 # Uso:
 #   ./scripts/sync-working-state.sh              # Sincronizar
@@ -26,6 +28,7 @@
 set -euo pipefail
 
 CLAUDE_FILE="CLAUDE.md"
+CURSORRULES_FILE=".cursorrules"
 WORKING_STATE_FILE="WORKING_STATE.md"
 MODE="sync"
 
@@ -35,7 +38,7 @@ case "${1:-}" in
     --help|-h)
         echo "Uso: $0 [--dry-run|--check|--help]"
         echo ""
-        echo "  (sin args)   Sincronizar WORKING_STATE.md -> CLAUDE.md"
+        echo "  (sin args)   Sincronizar WORKING_STATE.md -> CLAUDE.md + .cursorrules"
         echo "  --dry-run    Ver que cambiaria sin aplicar"
         echo "  --check      Verificar si estan desincronizados (exit 1 si si)"
         echo "  --help       Mostrar esta ayuda"
@@ -43,24 +46,10 @@ case "${1:-}" in
         ;;
 esac
 
-# Verificar que los archivos existen
-if [ ! -f "$CLAUDE_FILE" ]; then
-    echo "  $CLAUDE_FILE no encontrado — omitiendo sync"
-    exit 0
-fi
-
 if [ ! -f "$WORKING_STATE_FILE" ]; then
     echo "  $WORKING_STATE_FILE no encontrado — omitiendo sync"
     exit 0
 fi
-
-# Verificar que CLAUDE.md tiene la seccion "## Estado Actual"
-if ! grep -q "^## Estado Actual" "$CLAUDE_FILE"; then
-    echo "  CLAUDE.md no tiene seccion '## Estado Actual' — omitiendo sync"
-    exit 0
-fi
-
-# Extraer resumen compacto de WORKING_STATE.md
 
 # Extraer contenido entre headers de WORKING_STATE.md
 extract_section() {
@@ -89,66 +78,82 @@ fi
 
 NEW_STATE+="\n- Ultimo sync: $(date +%Y-%m-%d)"
 
-# Extraer el bloque actual de CLAUDE.md
-CURRENT_STATE=$(sed -n '/^## Estado Actual/,/^## /{ /^## Estado Actual/p; /^## [^E]/d; /^## Estado Actual/d; p; }' "$CLAUDE_FILE")
+# Funcion: sincronizar un archivo bootstrap individual
+sync_target() {
+    local target_file="$1"
 
-case "$MODE" in
-    "check")
-        CURRENT_NORMALIZED=$(echo "$CURRENT_STATE" | sed '/^$/d' | sed 's/^[[:space:]]*//')
-        NEW_NORMALIZED=$(echo -e "$NEW_STATE" | sed '/^$/d' | sed 's/^[[:space:]]*//' | tail -n +2)
+    if [ ! -f "$target_file" ]; then
+        return
+    fi
 
-        if [ "$CURRENT_NORMALIZED" = "$NEW_NORMALIZED" ]; then
-            echo "CLAUDE.md esta sincronizado con WORKING_STATE.md"
-            exit 0
-        else
-            echo "CLAUDE.md esta desincronizado con WORKING_STATE.md"
-            echo ""
-            echo "Estado actual en CLAUDE.md:"
-            echo "$CURRENT_NORMALIZED" | head -5
-            echo ""
-            echo "Estado en WORKING_STATE.md:"
-            echo "$NEW_NORMALIZED" | head -5
-            exit 1
-        fi
-        ;;
+    if ! grep -q "^## Estado Actual" "$target_file"; then
+        return
+    fi
 
-    "dry-run")
-        echo "Modo dry-run — cambios que se aplicarian a CLAUDE.md:"
-        echo ""
-        echo "Seccion '## Estado Actual' se reemplazaria con:"
-        echo "----------------------------------------"
-        echo -e "$NEW_STATE"
-        echo "----------------------------------------"
-        ;;
+    local current_state
+    current_state=$(sed -n '/^## Estado Actual/,/^## /{ /^## Estado Actual/p; /^## [^E]/d; /^## Estado Actual/d; p; }' "$target_file")
 
-    "sync")
-        TMP_FILE=$(mktemp)
+    case "$MODE" in
+        "check")
+            local current_normalized new_normalized
+            current_normalized=$(echo "$current_state" | sed '/^$/d' | sed 's/^[[:space:]]*//')
+            new_normalized=$(echo -e "$NEW_STATE" | sed '/^$/d' | sed 's/^[[:space:]]*//' | tail -n +2)
 
-        awk -v new_state="$(echo -e "$NEW_STATE")" '
-        /^## Estado Actual/ {
-            print new_state
-            skip = 1
-            next
-        }
-        /^## / && skip {
-            skip = 0
-        }
-        !skip {
-            print
-        }
-        ' "$CLAUDE_FILE" > "$TMP_FILE"
-
-        if diff -q "$CLAUDE_FILE" "$TMP_FILE" > /dev/null 2>&1; then
-            echo "CLAUDE.md ya esta sincronizado — sin cambios"
-            rm "$TMP_FILE"
-        else
-            mv "$TMP_FILE" "$CLAUDE_FILE"
-            echo "CLAUDE.md actualizado con estado de WORKING_STATE.md"
-
-            if [ -n "${GIT_INDEX_FILE:-}" ]; then
-                git add "$CLAUDE_FILE"
-                echo "   -> CLAUDE.md agregado al commit automaticamente"
+            if [ "$current_normalized" != "$new_normalized" ]; then
+                echo "$target_file esta desincronizado con WORKING_STATE.md"
+                CHECK_FAILED=1
+            else
+                echo "$target_file esta sincronizado con WORKING_STATE.md"
             fi
-        fi
-        ;;
-esac
+            ;;
+
+        "dry-run")
+            echo "--- $target_file ---"
+            echo "Seccion '## Estado Actual' se reemplazaria con:"
+            echo -e "$NEW_STATE"
+            echo ""
+            ;;
+
+        "sync")
+            local tmp_file
+            tmp_file=$(mktemp)
+
+            awk -v new_state="$(echo -e "$NEW_STATE")" '
+            /^## Estado Actual/ {
+                print new_state
+                skip = 1
+                next
+            }
+            /^## / && skip {
+                skip = 0
+            }
+            !skip {
+                print
+            }
+            ' "$target_file" > "$tmp_file"
+
+            if diff -q "$target_file" "$tmp_file" > /dev/null 2>&1; then
+                echo "$target_file ya esta sincronizado — sin cambios"
+                rm "$tmp_file"
+            else
+                mv "$tmp_file" "$target_file"
+                echo "$target_file actualizado con estado de WORKING_STATE.md"
+
+                if [ -n "${GIT_INDEX_FILE:-}" ]; then
+                    git add "$target_file"
+                    echo "   -> $target_file agregado al commit automaticamente"
+                fi
+            fi
+            ;;
+    esac
+}
+
+CHECK_FAILED=0
+
+# Sincronizar ambos archivos bootstrap
+sync_target "$CLAUDE_FILE"
+sync_target "$CURSORRULES_FILE"
+
+if [ "$MODE" = "check" ] && [ "$CHECK_FAILED" -eq 1 ]; then
+    exit 1
+fi

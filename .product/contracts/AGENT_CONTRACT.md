@@ -35,6 +35,25 @@ Cuando el agente encuentra una situacion no cubierta por las instrucciones:
 | Oportunidad de mejora no solicitada | Mencionar brevemente, no implementar sin aprobacion |
 | Problema de seguridad detectado | Reportar inmediatamente, detener la tarea si es critico |
 | Conflicto con una decision en DECISIONS.md | No cambiar — escalar al responsable |
+| Conflicto entre fuentes de memoria | Aplicar Regla de Precedencia (ver seccion abajo) |
+
+---
+
+## Regla de Precedencia de Memoria
+
+Cuando exista conflicto entre fuentes de informacion del proyecto:
+
+1. **DECISIONS.md (ADRs aceptadas)** — maxima autoridad para decisiones arquitectonicas
+2. **MEMORY.md** — fuente de verdad para hechos duraderos del producto
+3. **Logs diarios** (si se usan) — registro temporal, NO prevalece sobre MEMORY.md
+4. **WORKING_STATE.md** — estado operativo actual, no es fuente de verdad historica
+
+| Conflicto | Que prevalece | Accion |
+|-----------|--------------|--------|
+| MEMORY.md vs ADR aceptada | La ADR | Actualizar MEMORY.md para reflejar la ADR |
+| WORKING_STATE.md vs MEMORY.md | MEMORY.md | Corregir WORKING_STATE.md |
+| Log diario vs MEMORY.md | MEMORY.md | Ignorar el dato del log |
+| Cualquier conflicto no cubierto | Escalar al responsable | No asumir |
 
 ---
 
@@ -59,9 +78,9 @@ Cuando el agente encuentra una situacion no cubierta por las instrucciones:
 ### Actualizacion de estado (despues de cada tarea)
 Despues de completar cada tarea, actualizar `WORKING_STATE.md` con lo hecho y lo que sigue.
 Tambien:
-1. Anadir entrada a `.product/memory/YYYY-MM-DD.md` (append, nunca sobrescribir)
-2. Si hay hechos duraderos nuevos -> proponer cambio a MEMORY.md
-3. Si hubo decision arquitectonica -> proponer ADR en DECISIONS.md
+1. Si hay hechos duraderos nuevos -> proponer cambio a MEMORY.md
+2. Si hubo decision arquitectonica -> proponer ADR en DECISIONS.md
+3. (Opcional) Si el equipo usa logs diarios -> anadir entrada a `.product/memory/YYYY-MM-DD.md`
 
 No esperar al cierre de sesion — al cerrar, el agente ya no puede escribir.
 
@@ -73,15 +92,25 @@ No esperar al cierre de sesion — al cerrar, el agente ya no puede escribir.
 - Antes de cambiar de contexto a otra area del producto
 
 **Que hacer:**
-1. Anadir notas a `.product/memory/YYYY-MM-DD.md` (append, nunca sobrescribir)
-2. Si hay algo que deba recordarse siempre -> proponer cambio a MEMORY.md
-3. Verificar que WORKING_STATE.md este al dia
+1. Actualizar `.product/memory/MEMORY.md` con hechos duraderos nuevos (< 3,000 tokens)
+2. Verificar que `WORKING_STATE.md` este al dia
+3. Si hubo decision arquitectonica -> registrar ADR en `.product/context/DECISIONS.md`
 
 ### Reglas de tamano
 - No generar archivos de contexto > 5,000 tokens sin autorizacion del responsable
 - Si un archivo crece demasiado, proponer al responsable dividirlo
-- Los logs diarios son append-only — nunca editar entradas anteriores
 - MEMORY.md debe mantenerse bajo 3,000 tokens — proponer archivar items antiguos
+
+---
+
+## Protocolo de Conocimiento Externo
+
+Cuando el responsable mencione informacion de fuentes externas (Confluence, Notion, docs, wikis):
+
+1. Si el dato es relevante para la tarea actual, usarlo normalmente
+2. Si el dato parece duradero o reutilizable, **proponer al responsable** persistirlo en el archivo `.product/` correspondiente
+3. No decidir por cuenta propia donde persistir — proponer ubicacion y esperar aprobacion
+4. Al persistir, incluir la fuente como referencia (ej: "Fuente: Confluence > Proyecto X > Arquitectura")
 
 ---
 

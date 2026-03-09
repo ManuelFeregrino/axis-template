@@ -32,9 +32,9 @@ Al iniciar:
 
 Al completar cada tarea:
 1. Actualiza WORKING_STATE.md con lo hecho y lo que sigue
-2. Anade entrada al log diario en .product/memory/YYYY-MM-DD.md (append, no sobrescribir)
-3. Si hay hechos duraderos nuevos -> propon actualizacion de .product/memory/MEMORY.md
-4. Si hubo decision de arquitectura -> propon ADR en .product/context/DECISIONS.md
+2. Si hay hechos duraderos nuevos -> propon actualizacion de .product/memory/MEMORY.md
+3. Si hubo decision de arquitectura -> propon ADR en .product/context/DECISIONS.md
+4. (Opcional) Si el equipo usa logs diarios -> anade entrada a .product/memory/YYYY-MM-DD.md
 
 ## Skills Disponibles
 Las skills viven en .claude/skills/[nombre]/SKILL.md
@@ -43,7 +43,12 @@ Lee el SKILL.md completo cuando la tarea lo requiera.
 Skills instaladas:
 | Skill | Cuando activarlo |
 |-------|-----------------|
-| session-protocol | Inicio y cierre de sesion |
+| session-start | Cargar contexto e iniciar sesion |
+| session-end | Memory flush y cierre de sesion |
+| update-memory | Revisar y limpiar MEMORY.md |
+| sync-context | Verificar integridad del contexto |
+| import-jira | Importar Epic/Stories/Tasks de Jira |
+| session-protocol | Referencia completa del protocolo de sesion |
 | commit-and-pr | Hacer commits o PRs |
 | adr | Documentar decisiones arquitectonicas |
 

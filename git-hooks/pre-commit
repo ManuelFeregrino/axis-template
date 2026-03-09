@@ -3,10 +3,10 @@
 # Instalar: ./scripts/install-git-hooks.sh
 #
 # Este hook se ejecuta automaticamente antes de cada commit.
-# Sincroniza WORKING_STATE.md -> CLAUDE.md para que el estado
-# del producto siempre este en el archivo que Claude Code auto-carga.
+# Sincroniza WORKING_STATE.md -> CLAUDE.md y .cursorrules para que el
+# estado del producto siempre este en los archivos bootstrap auto-cargados.
 
-# --- Sync WORKING_STATE.md -> CLAUDE.md ---
+# --- Sync WORKING_STATE.md -> CLAUDE.md + .cursorrules ---
 # Solo ejecutar si WORKING_STATE.md esta en el commit (fue modificado)
 if git diff --cached --name-only | grep -q "WORKING_STATE.md"; then
     if [ -f "scripts/sync-working-state.sh" ]; then

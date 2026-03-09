@@ -67,6 +67,7 @@ check_file() {
         if [ "$is_bootstrap" = "bootstrap" ]; then
             echo "     CRITICO: Este archivo se paga en CADA turno de conversacion"
         fi
+        suggest_fix "$file"
         EXIT_CODE=1
     elif [ "$tokens" -gt $(( max_tokens * 80 / 100 )) ]; then
         echo "  ! $label — ~${tokens} tokens (>80% del limite de ${max_tokens})"
@@ -75,6 +76,37 @@ check_file() {
             echo "  OK $label — ~${tokens} tokens (limite: ${max_tokens})"
         fi
     fi
+}
+
+# Funcion: sugerir como reducir un archivo que excede el limite
+suggest_fix() {
+    local file="$1"
+    case "$file" in
+        "CLAUDE.md"|".cursorrules")
+            echo "     SUGERENCIA: Mueve secciones no-criticas a AGENT_CONTEXT.md o .product/"
+            echo "     Solo identidad, estado actual y reglas inquebrantables deben estar aqui."
+            ;;
+        "WORKING_STATE.md")
+            echo "     SUGERENCIA: Mueve detalles a MEMORY.md (duraderos) o reduce scope."
+            echo "     Solo debe tener: en progreso, siguiente, bloqueantes."
+            ;;
+        "AGENT_CONTEXT.md")
+            echo "     SUGERENCIA: Reduce descripciones. Este archivo es un indice, no un contenedor."
+            ;;
+        ".product/memory/MEMORY.md")
+            echo "     SUGERENCIA: Archiva items resueltos a .product/memory/MEMORY_ARCHIVE.md"
+            echo "     o elimina items que ya no aplican."
+            ;;
+        .product/memory/????-??-??.md)
+            echo "     SUGERENCIA: Mueve hechos duraderos a MEMORY.md y reduce detalles."
+            ;;
+        .product/*)
+            echo "     SUGERENCIA: Divide este archivo o mueve contenido estable a un archivo complementario."
+            ;;
+        .claude/skills/*)
+            echo "     SUGERENCIA: Extrae ejemplos largos a archivos auxiliares en la carpeta del skill."
+            ;;
+    esac
 }
 
 echo ""
@@ -128,6 +160,30 @@ if [ -f ".product/memory/${TODAY}.md" ]; then
     echo ""
 fi
 
+# Validar referencias en AGENT_CONTEXT.md
+if [ -f "AGENT_CONTEXT.md" ]; then
+    echo "Referencias en AGENT_CONTEXT.md"
+    echo "--------------------------------------------"
+    BROKEN_REFS=0
+    while IFS= read -r ref; do
+        if [ ! -f "$ref" ] && [ ! -d "$ref" ]; then
+            echo "  X $ref — no existe"
+            BROKEN_REFS=$((BROKEN_REFS + 1))
+            EXIT_CODE=1
+        elif [ "$MODE" = "verbose" ]; then
+            echo "  OK $ref"
+        fi
+    done < <(grep -oE '\.[a-zA-Z_/]+\.(md|sh)' "AGENT_CONTEXT.md" | sort -u)
+    if [ "$BROKEN_REFS" -eq 0 ]; then
+        if [ "$MODE" = "verbose" ]; then
+            echo "  Todas las referencias son validas"
+        fi
+    else
+        echo "  $BROKEN_REFS referencia(s) rota(s) — actualiza AGENT_CONTEXT.md"
+    fi
+    echo ""
+fi
+
 # Resumen
 echo "============================================"
 if [ "$EXIT_CODE" -eq 0 ]; then
@@ -135,8 +191,7 @@ if [ "$EXIT_CODE" -eq 0 ]; then
 else
     echo "ERROR - Hay archivos que exceden los limites recomendados"
     echo ""
-    echo "   Revisa los limites de tokens de AXIS para"
-    echo "   recomendaciones de como reducir el tamano."
+    echo "   Revisa las SUGERENCIAS arriba para cada archivo que excede."
 fi
 echo ""
 
