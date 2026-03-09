@@ -30,6 +30,9 @@ fi
 
 echo "Instalando git hooks de AXIS..."
 
+# Asegurar que el directorio de hooks existe
+mkdir -p "$HOOKS_DEST"
+
 for hook in "$HOOKS_SOURCE"/*; do
     hook_name=$(basename "$hook")
 
