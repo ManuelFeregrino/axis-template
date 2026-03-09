@@ -104,6 +104,12 @@ for file in CLAUDE.md .cursorrules AGENT_CONTEXT.md WORKING_STATE.md CHANGELOG.m
     fi
 done
 
+# Copiar README del template como README-AXIS.md
+if [ -f "$TEMP_DIR/README.md" ]; then
+    cp "$TEMP_DIR/README.md" README-AXIS.md
+    echo "  + README-AXIS.md (documentacion de AXIS)"
+fi
+
 # Hacer ejecutables los scripts
 chmod +x scripts/*.sh
 

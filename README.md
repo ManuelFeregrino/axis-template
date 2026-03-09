@@ -115,7 +115,7 @@ En Claude Code se invocan como `/nombre`:
 
 ### `update-axis.sh` — Actualizar archivos framework
 
-Actualiza scripts, hooks, skills y README sin tocar tu contenido:
+Actualiza scripts, hooks, skills y `README-AXIS.md` sin tocar tu contenido:
 
 ```bash
 ./scripts/update-axis.sh             # Actualizar
@@ -140,7 +140,7 @@ Sobreescribe todo, incluyendo `CLAUDE.md`, `.product/`, etc. Util si quieres emp
 | `scripts/*.sh`     |   Se actualiza   |      Se sobreescribe      |
 | `git-hooks/`       |   Se actualiza   |      Se sobreescribe      |
 | `.claude/skills/`  |   Se actualiza   |      Se sobreescribe      |
-| `README.md`        |   Se actualiza   |      Se sobreescribe      |
+| `README-AXIS.md`   |   Se actualiza   |      Se sobreescribe      |
 | `CLAUDE.md`        |  **No se toca**  |      Se sobreescribe      |
 | `.cursorrules`     |  **No se toca**  |      Se sobreescribe      |
 | `WORKING_STATE.md` |  **No se toca**  |      Se sobreescribe      |
@@ -282,6 +282,7 @@ proyecto/
 ├── AGENT_CONTEXT.md                   # Mapa de progressive disclosure
 ├── WORKING_STATE.md                   # Estado actual del trabajo
 ├── CHANGELOG.md                       # Historial de cambios
+├── README-AXIS.md                     # Documentacion de AXIS (uso, skills, referencia)
 │
 ├── .product/                          # Cerebro del producto
 │   ├── context/
