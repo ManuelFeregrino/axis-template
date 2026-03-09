@@ -1,7 +1,12 @@
 ---
 name: import-jira
 description: Importa un Epic de Jira con sus User Stories y Tasks, y los mapea a los archivos AXIS correspondientes.
-triggers: Cuando el usuario dice /import-jira, o pide traer trabajo de Jira para planear.
+triggers: |
+  Cuando el usuario dice:
+  - `/import-jira` (interactivo)
+  - `/import-jira PROJ-123` (solo key)
+  - `/import-jira https://mycompany.atlassian.net/browse/PROJ-123` (URL completa)
+  - O pide traer trabajo de Jira para planear.
 dependencies: WORKING_STATE.md, .product/context/ROADMAP.md, .product/context/PRODUCT.md
 ---
 
@@ -13,11 +18,45 @@ Este skill requiere MCP de Atlassian configurado. Si no esta disponible, indicar
 
 ### Paso 1 — Obtener el Epic
 
-Preguntar al usuario:
-- **Epic key** (ej: PROJ-123) — obligatorio
-- **Cloud ID o site URL** de Jira — obligatorio la primera vez, luego guardar en MEMORY.md
+Determinar la **epic key** y el **Cloud ID** segun como se invoco el skill:
 
-Usar `getJiraIssue` para obtener el Epic con campos: summary, description, status, priority.
+#### Forma A — URL completa: `/import-jira https://mycompany.atlassian.net/browse/PROJ-123`
+
+Parsear la URL de Jira para extraer site y key. Patrones soportados:
+- `https://{site}.atlassian.net/browse/{KEY}`
+- `https://{site}.atlassian.net/jira/software/projects/{PROJECT}/boards/{N}?selectedIssue={KEY}`
+- `https://{site}.atlassian.net/jira/software/projects/{PROJECT}/issues/{KEY}`
+
+Extraer:
+- **site**: dominio completo antes del path (ej: `mycompany.atlassian.net`)
+- **key**: patron `[A-Z][A-Z0-9]+-\d+` encontrado en la URL
+
+Resolver el Cloud ID:
+1. Llamar `getAccessibleAtlassianResources` para listar sites accesibles
+2. Buscar el site que haga match con el dominio extraido de la URL
+3. Tomar el `id` del recurso como Cloud ID
+
+Guardar en MEMORY.md:
+```markdown
+- Jira site: mycompany.atlassian.net (Cloud ID: xxxxx) — detectado [fecha]
+```
+
+#### Forma B — Solo key: `/import-jira PROJ-123`
+
+El argumento es una epic key si cumple el patron `[A-Z][A-Z0-9]+-\d+` (sin `http`).
+
+- Buscar Cloud ID guardado en MEMORY.md
+- Si no hay Cloud ID guardado, pedir al usuario el site URL (ej: `mycompany.atlassian.net`), resolver el Cloud ID con `getAccessibleAtlassianResources`, y guardarlo en MEMORY.md
+
+#### Forma C — Sin parametro: `/import-jira`
+
+Flujo interactivo:
+- Preguntar la **epic key** (ej: PROJ-123)
+- Buscar Cloud ID en MEMORY.md. Si no hay, pedir el **site URL** al usuario, resolver con `getAccessibleAtlassianResources`, y guardarlo
+
+---
+
+Una vez obtenidos key y Cloud ID, usar `getJiraIssue` para obtener el Epic con campos: summary, description, status, priority.
 
 ### Paso 2 — Obtener User Stories hijas
 

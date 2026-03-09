@@ -1,7 +1,12 @@
 ---
 name: import-dfc
 description: Importa un DFC (Documento Fundacional del Chamaco) desde Confluence y llena los archivos AXIS con el contexto del producto.
-triggers: /import-dfc, "importar DFC", "cargar el DFC", inicializar AXIS desde DFC.
+triggers: |
+  Cuando el usuario dice:
+  - `/import-dfc` (interactivo)
+  - `/import-dfc 12345` (solo Page ID)
+  - `/import-dfc https://mycompany.atlassian.net/wiki/spaces/SPACE/pages/12345/DFC` (URL completa)
+  - "importar DFC", "cargar el DFC", inicializar AXIS desde DFC.
 dependencies: CLAUDE.md, .cursorrules, .product/context/PRODUCT.md, .product/context/BUSINESS.md, .product/context/ROADMAP.md, .product/architecture/OVERVIEW.md, .product/architecture/RISKS.md, .product/memory/MEMORY.md
 ---
 
@@ -28,11 +33,44 @@ Este skill requiere MCP de Atlassian configurado para leer desde Confluence. Si 
 
 ### Paso 1 — Obtener el DFC
 
-Preguntar al usuario:
-- **Page ID o URL de Confluence** del DFC llenado — obligatorio
-- **Cloud ID** del site de Atlassian — obligatorio la primera vez, reutilizar de MEMORY.md si existe (puede venir de import-jira)
+Determinar el **Page ID** y el **Cloud ID** segun como se invoco el skill:
 
-Usar `getConfluencePage` para obtener el contenido completo del DFC.
+#### Forma A — URL completa: `/import-dfc https://mycompany.atlassian.net/wiki/spaces/SPACE/pages/12345/DFC`
+
+Parsear la URL de Confluence para extraer site y Page ID. Patrones soportados:
+- `https://{site}.atlassian.net/wiki/spaces/{SPACE}/pages/{PAGE_ID}/{TITLE}`
+- `https://{site}.atlassian.net/wiki/spaces/{SPACE}/pages/{PAGE_ID}`
+
+Extraer:
+- **site**: dominio completo antes del path (ej: `mycompany.atlassian.net`)
+- **Page ID**: segmento numerico despues de `/pages/`
+
+Resolver el Cloud ID:
+1. Llamar `getAccessibleAtlassianResources` para listar sites accesibles
+2. Buscar el site que haga match con el dominio extraido de la URL
+3. Tomar el `id` del recurso como Cloud ID
+
+Guardar en MEMORY.md (si no existe ya):
+```markdown
+- Confluence site: mycompany.atlassian.net (Cloud ID: xxxxx) — detectado [fecha]
+```
+
+#### Forma B — Solo Page ID: `/import-dfc 12345`
+
+El argumento es un Page ID si es numerico (sin `http`).
+
+- Buscar Cloud ID guardado en MEMORY.md (puede venir de import-jira)
+- Si no hay Cloud ID guardado, pedir al usuario el site URL (ej: `mycompany.atlassian.net`), resolver el Cloud ID con `getAccessibleAtlassianResources`, y guardarlo en MEMORY.md
+
+#### Forma C — Sin parametro: `/import-dfc`
+
+Flujo interactivo:
+- Preguntar el **Page ID o URL** del DFC
+- Si dan URL, seguir Forma A. Si dan Page ID, seguir Forma B
+
+---
+
+Una vez obtenidos Page ID y Cloud ID, usar `getConfluencePage` para obtener el contenido completo del DFC.
 
 **Fallback sin MCP:** Pedir al usuario que pegue el DFC completo como Markdown y continuar con el mismo flujo.
 
