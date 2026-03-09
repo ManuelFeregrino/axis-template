@@ -103,6 +103,7 @@ En Claude Code se invocan como `/nombre`:
 | `/sync-context` | Verifica integridad de referencias y sync de bootstrap | Cuando sospechas que algo esta desincronizado |
 | `/import-jira` | Importa Epic/Stories/Tasks de Jira y los mapea a archivos AXIS | Al iniciar trabajo sobre un Epic de Jira |
 | `/sync-jira` | Sincroniza estado de tasks entre AXIS y Jira (push/pull) | Despues de completar tasks con Jira keys |
+| `/import-dfc` | Importa un DFC de Confluence y llena los archivos AXIS con contexto del producto | Al inicializar AXIS para un producto con DFC |
 
 ---
 
@@ -219,7 +220,7 @@ Si un recurso externo (Confluence, Notion, wiki) se consulta mas de 2 veces, per
 
 Los skills son instrucciones modulares que el agente carga solo cuando las necesita. Viven en `.claude/skills/[nombre]/SKILL.md`.
 
-El template incluye 9 skills:
+El template incluye 10 skills:
 
 | Skill | Tipo | Que hace |
 |-------|------|----------|
@@ -229,6 +230,7 @@ El template incluye 9 skills:
 | `sync-context` | Comando | Verifica integridad de referencias y sync de bootstrap |
 | `import-jira` | Comando | Importa Epic/Stories/Tasks de Jira a archivos AXIS |
 | `sync-jira` | Comando | Sincroniza estado de tasks entre AXIS y Jira |
+| `import-dfc` | Comando | Importa DFC de Confluence y llena archivos AXIS |
 | `session-protocol` | Referencia | Protocolo completo de sesion |
 | `commit-and-pr` | Referencia | Conventional Commits, branching, estructura de PRs |
 | `adr` | Referencia | Formato y proceso para Architecture Decision Records |
@@ -303,6 +305,7 @@ proyecto/
 │   ├── sync-context/SKILL.md          # /sync-context
 │   ├── import-jira/SKILL.md           # /import-jira
 │   ├── sync-jira/SKILL.md            # /sync-jira
+│   ├── import-dfc/SKILL.md           # /import-dfc
 │   ├── session-protocol/SKILL.md      # Referencia de protocolo
 │   ├── commit-and-pr/SKILL.md         # Commits y PRs
 │   └── adr/SKILL.md                   # Architecture Decision Records
