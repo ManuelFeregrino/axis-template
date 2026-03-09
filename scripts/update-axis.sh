@@ -110,9 +110,6 @@ for skill_dir in "$TEMP_DIR"/.claude/skills/*/; do
     fi
 done
 
-# --- README.md ---
-sync_file "$TEMP_DIR/README.md" "README.md"
-
 # --- Archivos .product/ nuevos (solo si NO existen localmente) ---
 if [ -d "$TEMP_DIR/.product" ]; then
     while IFS= read -r product_file; do
@@ -167,7 +164,7 @@ fi
 echo ""
 echo "No tocados (contenido del proyecto):"
 echo "  CLAUDE.md, .cursorrules, WORKING_STATE.md,"
-echo "  .product/*, MEMORY.md"
+echo "  .product/*, MEMORY.md, README.md"
 
 echo ""
 echo "============================================"

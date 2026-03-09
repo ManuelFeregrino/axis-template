@@ -118,6 +118,9 @@ Actualiza scripts, hooks, skills y README sin tocar tu contenido:
 ./scripts/update-axis.sh --dry-run   # Ver que cambiaria sin aplicar
 ```
 
+> **Nota:** `update-axis.sh` se ejecuta localmente desde tu proyecto (que ya tiene AXIS instalado).
+> No usar via `curl | bash` — eso es solo para `install-axis.sh` en la instalacion inicial.
+
 ### `install-axis.sh --force` — Reinstalar desde cero
 
 Sobreescribe todo, incluyendo `CLAUDE.md`, `.product/`, etc. Util si quieres empezar de cero con la ultima version del template:
