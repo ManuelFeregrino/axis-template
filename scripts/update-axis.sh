@@ -110,6 +110,15 @@ for skill_dir in "$TEMP_DIR"/.claude/skills/*/; do
     fi
 done
 
+# --- Skills shared (modulos utilitarios) ---
+if [ -d "$TEMP_DIR/.claude/skills/_shared" ]; then
+    for shared_file in "$TEMP_DIR"/.claude/skills/_shared/*.md; do
+        [ -f "$shared_file" ] || continue
+        shared_name=$(basename "$shared_file")
+        sync_file "$shared_file" ".claude/skills/_shared/$shared_name"
+    done
+fi
+
 # --- README-AXIS.md (documentacion del template) ---
 sync_file "$TEMP_DIR/README.md" "README-AXIS.md"
 
