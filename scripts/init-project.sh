@@ -1,26 +1,25 @@
 #!/bin/bash
 # init-project.sh
 # Wizard interactivo de configuración para AXIS.
-# Llena los placeholders, detecta tu stack, y sugiere skills desde skills.ws.
+# Llena los placeholders, detecta tu stack, y sugiere + instala skills desde skills.sh.
 #
 # Uso (desde la raíz de tu proyecto con AXIS instalado):
 #   bash scripts/init-project.sh
 
 set -euo pipefail
 
-SKILLS_API="https://www.skills.ws/skills.json"
 SKILLS_DIR=".claude/skills"
 
-# ─── Colores ────────────────────────────────────────────────────────────────
+# ─── Colores ─────────────────────────────────────────────────────────────────
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 print_header() {
     echo ""
     echo -e "${BOLD}${BLUE}══════════════════════════════════════════════${NC}"
@@ -66,7 +65,6 @@ ask() {
 }
 
 ask_multiselect() {
-    # Muestra opciones numeradas y el usuario escribe los números separados por espacio
     local prompt="$1"
     shift
     local options=("$@")
@@ -75,7 +73,7 @@ ask_multiselect() {
     for i in "${!options[@]}"; do
         echo -e "  ${CYAN}$((i+1))${NC}) ${options[$i]}"
     done
-    echo -ne "${BOLD}Elige números separados por espacio (ej: 1 3 5) o Enter para ninguno${NC}: "
+    echo -ne "${BOLD}Elige números separados por espacio (Enter para ninguno)${NC}: "
     read -r selection
     MULTISELECT_RESULT="$selection"
 }
@@ -84,114 +82,89 @@ ask_multiselect() {
 check_requirements() {
     if [ ! -f "CLAUDE.md" ]; then
         print_error "No se encontró CLAUDE.md. ¿Estás en la raíz de un proyecto con AXIS instalado?"
-        echo "Instala AXIS primero: curl -fsSL https://raw.githubusercontent.com/ManuelFeregrino/axis-template/main/scripts/install-axis.sh | bash"
+        echo "Instala AXIS primero:"
+        echo "  curl -fsSL https://raw.githubusercontent.com/ManuelFeregrino/axis-template/main/scripts/install-axis.sh | bash"
         exit 1
     fi
 
-    if ! command -v curl &> /dev/null; then
-        print_error "curl no está instalado. Necesario para descargar skills."
-        exit 1
-    fi
-}
-
-# ─── Fetch skills desde skills.ws ────────────────────────────────────────────
-fetch_skills_catalog() {
-    print_step "Descargando catálogo de skills desde skills.ws..."
-    SKILLS_JSON=$(curl -s --max-time 10 "$SKILLS_API" 2>/dev/null || echo "")
-
-    if [ -z "$SKILLS_JSON" ]; then
-        print_warning "No se pudo conectar a skills.ws. Se omitirá la sugerencia de skills."
-        SKILLS_AVAILABLE=false
+    if ! command -v node &> /dev/null; then
+        print_warning "Node.js no encontrado. La búsqueda de skills requiere Node.js + npx."
+        SKILLS_CLI_AVAILABLE=false
     else
-        print_success "Catálogo cargado"
-        SKILLS_AVAILABLE=true
+        SKILLS_CLI_AVAILABLE=true
     fi
 }
 
-# ─── Matching de stack → skills ──────────────────────────────────────────────
-get_skills_for_stack() {
-    local stack_choices="$1"
-    SUGGESTED_SKILLS=()
-
-    # Mapa de stack → skills relevantes en skills.ws
-    declare -A STACK_SKILL_MAP
-    STACK_SKILL_MAP["nextjs"]="nextjs-stack nextjs-performance web-performance"
-    STACK_SKILL_MAP["react"]="nextjs-stack design-system ui-ux-pro-max"
-    STACK_SKILL_MAP["react-native"]="ui-ux-pro-max design-system"
-    STACK_SKILL_MAP["node"]="api-design database-design security-hardening"
-    STACK_SKILL_MAP["nestjs"]="api-design database-design security-hardening"
-    STACK_SKILL_MAP["postgres"]="postgres-mastery database-design"
-    STACK_SKILL_MAP["typescript"]="testing-strategy git-workflow"
-    STACK_SKILL_MAP["stripe"]="stripe-billing saas-billing"
-    STACK_SKILL_MAP["auth"]="auth-implementation security-hardening"
-    STACK_SKILL_MAP["aws"]="aws-production-deploy docker-production monitoring-observability"
-    STACK_SKILL_MAP["vercel"]="nextjs-performance ci-cd-pipeline"
-    STACK_SKILL_MAP["docker"]="docker-production monitoring-observability"
-    STACK_SKILL_MAP["testing"]="testing-strategy"
-    STACK_SKILL_MAP["web3"]="solidity-dev wallet-integration defi-integration"
-
-    declare -A added_skills
-
-    for tech in $stack_choices; do
-        tech_lower=$(echo "$tech" | tr '[:upper:]' '[:lower:]')
-        if [ -n "${STACK_SKILL_MAP[$tech_lower]:-}" ]; then
-            for skill in ${STACK_SKILL_MAP[$tech_lower]}; do
-                if [ -z "${added_skills[$skill]:-}" ]; then
-                    SUGGESTED_SKILLS+=("$skill")
-                    added_skills[$skill]=1
-                fi
-            done
-        fi
-    done
+# ─── Buscar skills en skills.sh via CLI ───────────────────────────────────────
+search_skills() {
+    local query="$1"
+    # Retorna lista de "owner/repo@skill (N installs)" limpia
+    npx --yes skills find "$query" 2>/dev/null \
+        | grep -E '@' \
+        | grep -v '└' \
+        | sed 's/\x1b\[[0-9;]*m//g' \
+        | awk '{print $1}' \
+        | head -5 \
+        || true
 }
 
-# ─── Instalar un skill desde skills.ws ───────────────────────────────────────
-install_skill_from_skills_ws() {
-    local skill_name="$1"
+# ─── Instalar un skill con npx skills add ────────────────────────────────────
+install_skill() {
+    local skill_ref="$1"  # formato: owner/repo@skill-name
+    local skill_name
+    skill_name=$(echo "$skill_ref" | sed 's/.*@//')
     local target_dir="$SKILLS_DIR/$skill_name"
 
-    # Verificar si ya existe (no sobreescribir)
     if [ -d "$target_dir" ]; then
-        print_warning "Skill '$skill_name' ya existe en $target_dir — omitido (no se sobreescribe)"
+        print_warning "Skill '$skill_name' ya existe — omitido (no se sobreescribe)"
         return 0
     fi
 
-    # Obtener contenido del skill desde la API
-    local content
-    content=$(echo "$SKILLS_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for skill in data.get('skills', []):
-    if skill['name'] == '$skill_name':
-        print(skill.get('content', ''))
-        sys.exit(0)
-sys.exit(1)
-" 2>/dev/null || echo "")
+    echo -e "  Instalando ${CYAN}$skill_ref${NC}..."
+    if npx --yes skills add "$skill_ref" 2>/dev/null; then
+        print_success "Skill '$skill_name' instalado"
+    else
+        print_warning "No se pudo instalar '$skill_ref'"
+    fi
+}
 
-    if [ -z "$content" ]; then
-        print_warning "No se encontró contenido para skill '$skill_name'"
-        return 1
+# ─── Buscar y mostrar skills para un término ─────────────────────────────────
+suggest_skills_for_query() {
+    local query="$1"
+    local label="$2"
+
+    echo ""
+    echo -e "  ${BOLD}Skills para ${CYAN}$label${NC}${BOLD}:${NC}"
+
+    local results
+    results=$(search_skills "$query")
+
+    if [ -z "$results" ]; then
+        echo -e "  ${YELLOW}Sin resultados para '$query'${NC}"
+        return
     fi
 
-    mkdir -p "$target_dir"
-    echo "$content" > "$target_dir/SKILL.md"
-    print_success "Skill '$skill_name' instalado en $target_dir"
+    local i=1
+    while IFS= read -r skill_ref; do
+        [ -z "$skill_ref" ] && continue
+        skill_name=$(echo "$skill_ref" | sed 's/.*@//')
+        existing=""
+        [ -d "$SKILLS_DIR/$skill_name" ] && existing=" ${YELLOW}(ya instalado)${NC}"
+        echo -e "    ${CYAN}$i${NC}) $skill_ref$existing"
+        SKILL_SEARCH_RESULTS+=("$skill_ref")
+        ((i++)) || true
+    done <<< "$results"
 }
 
 # ─── Reemplazar placeholders en archivos ─────────────────────────────────────
 replace_placeholders() {
     local file="$1"
     local product_name="$2"
-    local product_desc="$3"
-    local stack_str="$4"
-    local phase="$5"
-    local author_name="$6"
+    local phase="$3"
+    local author_name="$4"
 
-    if [ ! -f "$file" ]; then
-        return 0
-    fi
+    [ ! -f "$file" ] && return 0
 
-    # Usar sed para reemplazar placeholders
     sed -i \
         -e "s/\[NOMBRE DEL PRODUCTO\]/$product_name/g" \
         -e "s/\[NOMBRE\]/$author_name/g" \
@@ -202,18 +175,18 @@ replace_placeholders() {
         "$file" 2>/dev/null || true
 }
 
-# ─── Crear/actualizar .product/context/PRODUCT.md ────────────────────────────
-setup_product_md() {
+# ─── Crear archivos .product/ ────────────────────────────────────────────────
+setup_product_files() {
     local product_name="$1"
     local product_desc="$2"
     local target_audience="$3"
     local stack_str="$4"
 
-    local product_file=".product/context/PRODUCT.md"
-    mkdir -p ".product/context"
+    mkdir -p ".product/context" ".product/architecture"
 
-    cat > "$product_file" << EOF
-# $product_name — Producto
+    # PRODUCT.md
+    cat > ".product/context/PRODUCT.md" << EOF
+# $product_name
 
 ## Qué es
 $product_desc
@@ -227,20 +200,11 @@ $stack_str
 ## Generado
 $(date '+%Y-%m-%d') via init-project.sh
 EOF
+    print_success "Creado .product/context/PRODUCT.md"
 
-    print_success "Creado $product_file"
-}
-
-# ─── Crear/actualizar .product/architecture/OVERVIEW.md ──────────────────────
-setup_overview_md() {
-    local product_name="$1"
-    local stack_str="$2"
-
-    local overview_file=".product/architecture/OVERVIEW.md"
-    mkdir -p ".product/architecture"
-
-    if [ ! -f "$overview_file" ]; then
-        cat > "$overview_file" << EOF
+    # OVERVIEW.md (solo si no existe)
+    if [ ! -f ".product/architecture/OVERVIEW.md" ]; then
+        cat > ".product/architecture/OVERVIEW.md" << EOF
 # $product_name — Architecture Overview
 
 ## Stack
@@ -257,9 +221,9 @@ $stack_str
 ## Generado
 $(date '+%Y-%m-%d') via init-project.sh — completar manualmente
 EOF
-        print_success "Creado $overview_file (completar manualmente)"
+        print_success "Creado .product/architecture/OVERVIEW.md (completar manualmente)"
     else
-        print_warning "$overview_file ya existe — no sobreescrito"
+        print_warning ".product/architecture/OVERVIEW.md ya existe — no sobreescrito"
     fi
 }
 
@@ -267,20 +231,16 @@ EOF
 main() {
     print_header
     check_requirements
-    fetch_skills_catalog
 
     # ── Paso 1: Info del proyecto ──────────────────────────────────────────
     print_step "1/4 — Información del proyecto"
 
     ask "Nombre del producto" "" PRODUCT_NAME
-    if [ -z "$PRODUCT_NAME" ]; then
-        print_error "El nombre del producto es obligatorio."
-        exit 1
-    fi
+    [ -z "$PRODUCT_NAME" ] && print_error "El nombre es obligatorio." && exit 1
 
-    ask "Descripción corta (1 línea: qué hace y para quién)" "" PRODUCT_DESC
+    ask "Descripción corta (qué hace y para quién)" "" PRODUCT_DESC
     ask "Audiencia objetivo" "desarrolladores / pequeñas empresas" TARGET_AUDIENCE
-    ask "Tu nombre (para los placeholders [NOMBRE])" "" AUTHOR_NAME
+    ask "Tu nombre" "" AUTHOR_NAME
 
     echo ""
     echo -e "${BOLD}Fase del proyecto:${NC}"
@@ -302,99 +262,109 @@ main() {
         "Next.js"
         "React"
         "React Native"
-        "Node.js"
-        "NestJS"
+        "Node.js / NestJS"
         "TypeScript"
         "PostgreSQL"
         "Stripe"
-        "Auth (Clerk/Auth.js/NextAuth)"
+        "Auth (Clerk/NextAuth)"
         "AWS"
         "Vercel"
-        "Docker"
+        "Docker / DevOps"
         "Testing"
-        "Web3/Blockchain"
+        "Design System / UI"
+        "Web3 / Blockchain"
     )
 
-    ask_multiselect "¿Qué tecnologías usas? (escribe los números)" "${TECH_OPTIONS[@]}"
+    # Queries de búsqueda para cada tech
+    TECH_QUERIES=(
+        "react nextjs"
+        "react"
+        "react native"
+        "node typescript api"
+        "typescript"
+        "postgres database"
+        "stripe billing"
+        "auth authentication"
+        "aws deploy"
+        "vercel deploy"
+        "docker devops ci-cd"
+        "testing"
+        "design ui"
+        "web3 blockchain"
+    )
 
-    SELECTED_STACK=()
-    STACK_KEYS=("nextjs" "react" "react-native" "node" "nestjs" "typescript" "postgres" "stripe" "auth" "aws" "vercel" "docker" "testing" "web3")
+    ask_multiselect "¿Qué tecnologías usas?" "${TECH_OPTIONS[@]}"
+
+    SELECTED_INDICES=()
     STACK_DISPLAY=""
-
     for num in $MULTISELECT_RESULT; do
         idx=$((num - 1))
         if [ "$idx" -ge 0 ] && [ "$idx" -lt "${#TECH_OPTIONS[@]}" ]; then
-            SELECTED_STACK+=("${STACK_KEYS[$idx]}")
+            SELECTED_INDICES+=("$idx")
             STACK_DISPLAY="$STACK_DISPLAY ${TECH_OPTIONS[$idx]},"
         fi
     done
-
-    STACK_STR="${STACK_DISPLAY%, }"
+    STACK_STR="${STACK_DISPLAY%,}"
     echo ""
-    echo -e "Stack seleccionado: ${GREEN}${STACK_STR}${NC}"
+    echo -e "Stack: ${GREEN}${STACK_STR}${NC}"
 
-    # ── Paso 3: Skills sugeridos ───────────────────────────────────────────
-    print_step "3/4 — Skills recomendados para tu stack"
+    # ── Paso 3: Skills desde skills.sh ────────────────────────────────────
+    print_step "3/4 — Buscando skills en skills.sh para tu stack"
 
-    if [ "$SKILLS_AVAILABLE" = true ] && [ "${#SELECTED_STACK[@]}" -gt 0 ]; then
-        get_skills_for_stack "${SELECTED_STACK[*]}"
+    declare -a ALL_FOUND_SKILLS=()
 
-        if [ "${#SUGGESTED_SKILLS[@]}" -gt 0 ]; then
+    if [ "$SKILLS_CLI_AVAILABLE" = true ] && [ "${#SELECTED_INDICES[@]}" -gt 0 ]; then
+        declare -a SKILL_SEARCH_RESULTS=()
+
+        for idx in "${SELECTED_INDICES[@]}"; do
+            query="${TECH_QUERIES[$idx]}"
+            label="${TECH_OPTIONS[$idx]}"
+            suggest_skills_for_query "$query" "$label"
+        done
+
+        ALL_FOUND_SKILLS=("${SKILL_SEARCH_RESULTS[@]:-}")
+
+        if [ "${#ALL_FOUND_SKILLS[@]}" -gt 0 ]; then
             echo ""
-            echo -e "Skills recomendados desde ${CYAN}skills.ws${NC}:"
-            echo ""
-            for i in "${!SUGGESTED_SKILLS[@]}"; do
-                skill="${SUGGESTED_SKILLS[$i]}"
-                existing=""
-                [ -d "$SKILLS_DIR/$skill" ] && existing=" ${YELLOW}(ya instalado)${NC}"
-                echo -e "  ${CYAN}$((i+1))${NC}) ${BOLD}$skill${NC}$existing"
-            done
-
-            echo ""
-            ask "¿Instalar todos los sugeridos? (s/n)" "s" INSTALL_ALL
+            ask "¿Instalar todos los skills encontrados? (s/n)" "s" INSTALL_ALL
 
             if [[ "$INSTALL_ALL" =~ ^[sS]$ ]]; then
-                SKILLS_TO_INSTALL=("${SUGGESTED_SKILLS[@]}")
+                SKILLS_TO_INSTALL=("${ALL_FOUND_SKILLS[@]}")
             else
                 echo ""
-                ask_multiselect "¿Cuáles instalar?" "${SUGGESTED_SKILLS[@]}"
+                ask_multiselect "¿Cuáles instalar? (números del listado de arriba)" "${ALL_FOUND_SKILLS[@]}"
                 SKILLS_TO_INSTALL=()
                 for num in $MULTISELECT_RESULT; do
                     idx=$((num - 1))
-                    if [ "$idx" -ge 0 ] && [ "$idx" -lt "${#SUGGESTED_SKILLS[@]}" ]; then
-                        SKILLS_TO_INSTALL+=("${SUGGESTED_SKILLS[$idx]}")
-                    fi
+                    [ "$idx" -ge 0 ] && [ "$idx" -lt "${#ALL_FOUND_SKILLS[@]}" ] && \
+                        SKILLS_TO_INSTALL+=("${ALL_FOUND_SKILLS[$idx]}")
                 done
             fi
 
             echo ""
             echo -e "${BOLD}Instalando skills...${NC}"
-            for skill in "${SKILLS_TO_INSTALL[@]}"; do
-                install_skill_from_skills_ws "$skill"
+            for skill_ref in "${SKILLS_TO_INSTALL[@]:-}"; do
+                [ -n "$skill_ref" ] && install_skill "$skill_ref"
             done
         else
-            print_warning "No se encontraron skills específicos para tu stack en skills.ws."
+            print_warning "No se encontraron skills — revisa tu conexión o busca manualmente con: npx skills find <query>"
         fi
     else
-        print_warning "Sin conexión a skills.ws o stack no seleccionado — saltando sugerencias."
+        print_warning "Sin Node.js disponible o sin stack seleccionado — saltando skills."
+        echo -e "Puedes instalar skills manualmente después: ${CYAN}npx skills find <query>${NC}"
     fi
 
     # ── Paso 4: Aplicar configuración ─────────────────────────────────────
     print_step "4/4 — Aplicando configuración"
 
-    replace_placeholders "CLAUDE.md" "$PRODUCT_NAME" "$PRODUCT_DESC" "$STACK_STR" "$PHASE" "$AUTHOR_NAME"
-    print_success "CLAUDE.md actualizado"
+    for f in "CLAUDE.md" "AGENT_CONTEXT.md" "WORKING_STATE.md"; do
+        replace_placeholders "$f" "$PRODUCT_NAME" "$PHASE" "$AUTHOR_NAME"
+        [ -f "$f" ] && print_success "$f actualizado"
+    done
 
-    replace_placeholders "AGENT_CONTEXT.md" "$PRODUCT_NAME" "$PRODUCT_DESC" "$STACK_STR" "$PHASE" "$AUTHOR_NAME"
-    print_success "AGENT_CONTEXT.md actualizado"
+    setup_product_files "$PRODUCT_NAME" "$PRODUCT_DESC" "$TARGET_AUDIENCE" "$STACK_STR"
 
-    replace_placeholders "WORKING_STATE.md" "$PRODUCT_NAME" "$PRODUCT_DESC" "$STACK_STR" "$PHASE" "$AUTHOR_NAME"
-    print_success "WORKING_STATE.md actualizado"
-
-    setup_product_md "$PRODUCT_NAME" "$PRODUCT_DESC" "$TARGET_AUDIENCE" "$STACK_STR"
-    setup_overview_md "$PRODUCT_NAME" "$STACK_STR"
-
-    # ── Resumen final ──────────────────────────────────────────────────────
+    # ── Resumen ────────────────────────────────────────────────────────────
     echo ""
     echo -e "${BOLD}${GREEN}══════════════════════════════════════════════${NC}"
     echo -e "${BOLD}${GREEN}  ✓ Proyecto configurado: $PRODUCT_NAME${NC}"
@@ -402,14 +372,16 @@ main() {
     echo ""
     echo -e "  ${BOLD}Fase:${NC}   $PHASE"
     echo -e "  ${BOLD}Stack:${NC}  $STACK_STR"
+    echo -e "  ${BOLD}Skills instalados:${NC} $(ls $SKILLS_DIR 2>/dev/null | wc -l) en total"
     echo ""
     echo -e "  ${BOLD}Próximos pasos:${NC}"
-    echo -e "  1. Revisa ${CYAN}CLAUDE.md${NC} y ajusta las Reglas Inquebrantables"
-    echo -e "  2. Llena ${CYAN}.product/context/PRODUCT.md${NC} con más detalle"
-    echo -e "  3. Completa ${CYAN}.product/architecture/OVERVIEW.md${NC} con tu estructura real"
-    echo -e "  4. Haz commit: ${CYAN}git add . && git commit -m 'init: configure AXIS for $PRODUCT_NAME'${NC}"
+    echo -e "  1. Revisa ${CYAN}CLAUDE.md${NC} → ajusta las Reglas Inquebrantables"
+    echo -e "  2. Completa ${CYAN}.product/context/PRODUCT.md${NC} con más detalle"
+    echo -e "  3. Llena ${CYAN}.product/architecture/OVERVIEW.md${NC} con tu estructura real"
+    echo -e "  4. ${CYAN}git add . && git commit -m 'init: configure AXIS for $PRODUCT_NAME'${NC}"
     echo ""
-    echo -e "  ${BOLD}Skills instalados:${NC} $(ls $SKILLS_DIR 2>/dev/null | wc -l) en total"
+    echo -e "  Buscar más skills: ${CYAN}npx skills find <query>${NC}"
+    echo -e "  Instalar skill:    ${CYAN}npx skills add owner/repo@skill-name${NC}"
     echo ""
 }
 
