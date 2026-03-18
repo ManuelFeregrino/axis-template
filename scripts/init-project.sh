@@ -435,6 +435,7 @@ main() {
 
     STACK_STR=""
     SELECTED_QUERIES=()
+    SELECTED_LABELS=()   # label legible para cada query (mismo índice)
 
     AUTO_COUNT=${#AUTO_DETECTED_LABELS[@]}
 
@@ -446,18 +447,18 @@ main() {
             # Mapear labels detectados a queries
             for auto_key in "${AUTO_DETECTED_STACK[@]:-}"; do
                 case "$auto_key" in
-                    nextjs)    SELECTED_QUERIES+=("react nextjs") ;;
-                    react)     SELECTED_QUERIES+=("react") ;;
-                    react-native) SELECTED_QUERIES+=("react native") ;;
-                    nestjs)    SELECTED_QUERIES+=("node typescript api") ;;
-                    typescript) SELECTED_QUERIES+=("typescript") ;;
-                    postgres)  SELECTED_QUERIES+=("postgres database") ;;
-                    stripe)    SELECTED_QUERIES+=("stripe billing") ;;
-                    auth)      SELECTED_QUERIES+=("auth authentication") ;;
-                    testing)   SELECTED_QUERIES+=("testing") ;;
-                    design)    SELECTED_QUERIES+=("design ui") ;;
-                    docker)    SELECTED_QUERIES+=("docker devops ci-cd") ;;
-                    web3)      SELECTED_QUERIES+=("web3 blockchain") ;;
+                    nextjs)    SELECTED_QUERIES+=("react nextjs");       SELECTED_LABELS+=("Next.js") ;;
+                    react)     SELECTED_QUERIES+=("react");              SELECTED_LABELS+=("React") ;;
+                    react-native) SELECTED_QUERIES+=("react native");   SELECTED_LABELS+=("React Native") ;;
+                    nestjs)    SELECTED_QUERIES+=("node typescript api"); SELECTED_LABELS+=("NestJS") ;;
+                    typescript) SELECTED_QUERIES+=("typescript");        SELECTED_LABELS+=("TypeScript") ;;
+                    postgres)  SELECTED_QUERIES+=("postgres database");  SELECTED_LABELS+=("PostgreSQL") ;;
+                    stripe)    SELECTED_QUERIES+=("stripe billing");     SELECTED_LABELS+=("Stripe") ;;
+                    auth)      SELECTED_QUERIES+=("auth authentication"); SELECTED_LABELS+=("Auth") ;;
+                    testing)   SELECTED_QUERIES+=("testing");            SELECTED_LABELS+=("Testing") ;;
+                    design)    SELECTED_QUERIES+=("design ui");          SELECTED_LABELS+=("Design System") ;;
+                    docker)    SELECTED_QUERIES+=("docker devops ci-cd"); SELECTED_LABELS+=("Docker / DevOps") ;;
+                    web3)      SELECTED_QUERIES+=("web3 blockchain");    SELECTED_LABELS+=("Web3") ;;
                 esac
             done
         else
@@ -469,6 +470,7 @@ main() {
                 if [ "$idx" -ge 0 ] && [ "$idx" -lt "$OPT_COUNT" ]; then
                     STACK_STR="$STACK_STR ${TECH_OPTIONS[$idx]},"
                     SELECTED_QUERIES+=("${TECH_QUERIES[$idx]}")
+                    SELECTED_LABELS+=("${TECH_OPTIONS[$idx]}")
                 fi
             done
             STACK_STR="${STACK_STR%,}"
@@ -482,6 +484,7 @@ main() {
             if [ "$idx" -ge 0 ] && [ "$idx" -lt "$OPT_COUNT" ]; then
                 STACK_STR="$STACK_STR ${TECH_OPTIONS[$idx]},"
                 SELECTED_QUERIES+=("${TECH_QUERIES[$idx]}")
+                SELECTED_LABELS+=("${TECH_OPTIONS[$idx]}")
             fi
         done
         STACK_STR="${STACK_STR%,}"
@@ -508,7 +511,7 @@ main() {
         # Índice de queries mapeado a label de stack
         QUERY_IDX=0
         for query in "${SELECTED_QUERIES[@]:-}"; do
-            STACK_LABEL="${TECH_OPTIONS[$QUERY_IDX]:-$query}"
+            STACK_LABEL="${SELECTED_LABELS[$QUERY_IDX]:-$query}"
             QUERY_IDX=$((QUERY_IDX + 1))
             COUNT_FOR_QUERY=0
             while IFS= read -r line; do
