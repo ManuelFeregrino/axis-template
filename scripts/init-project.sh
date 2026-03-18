@@ -587,12 +587,94 @@ main() {
     echo -e "  • .product/context/PRODUCT.md"
     echo -e "  • .product/architecture/OVERVIEW.md"
     echo ""
-    echo -e "  ${BOLD}Próximos pasos:${NC}"
-    echo -e "  1. Revisa ${CYAN}CLAUDE.md${NC} → verifica las reglas inyectadas"
-    echo -e "  2. Completa ${CYAN}.product/architecture/OVERVIEW.md${NC} con tu estructura real"
-    echo -e "  3. ${CYAN}git add . && git commit -m 'init: configure AXIS for $PRODUCT_NAME'${NC}"
+    # ── Prompt para el agente según fase ──────────────────────────────────
+    echo ""
+    echo -e "${BOLD}${BLUE}══════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}${BLUE}  🤖 Prompt para tu agente${NC}"
+    echo -e "${BOLD}${BLUE}══════════════════════════════════════════════${NC}"
+    echo ""
+
+    if [ "$PHASE" = "Construccion" ]; then
+        cat << AGENT_PROMPT
+Copia y pega esto en Claude Code (o tu agente) para arrancar:
+
+────────────────────────────────────────────────────
+Hola. Estamos iniciando el proyecto "$PRODUCT_NAME".
+
+Contexto:
+- Tipo: $PROJECT_TYPE
+- Stack: $STACK_STR
+- Fase: Construcción
+- Autonomía configurada: $(case $AUTONOMY_LEVEL in 1) echo Explorador;; 3) echo "Piloto Automático";; *) echo Ejecutor;; esac)
+
+Lee los archivos de contexto en este orden:
+1. CLAUDE.md — identidad y reglas del proyecto
+2. WORKING_STATE.md — estado actual
+3. .product/context/PRODUCT.md — qué estamos construyendo
+4. .product/architecture/OVERVIEW.md — stack y estructura
+
+Una vez que tengas el contexto, dime:
+- ¿Qué archivos clave ya existen en el proyecto?
+- ¿Qué falta para tener el entorno de desarrollo funcionando?
+- ¿Cuál es la primera tarea que recomiendas atacar?
+
+Propón el plan de inicio y espera mi aprobación antes de ejecutar.
+────────────────────────────────────────────────────
+AGENT_PROMPT
+    elif [ "$PHASE" = "Validacion" ]; then
+        cat << AGENT_PROMPT
+El proyecto está en fase de Validación. Próximos pasos sugeridos:
+
+────────────────────────────────────────────────────
+Prompt para tu agente:
+
+Hola. El proyecto "$PRODUCT_NAME" está en fase de Validación.
+
+Lee CLAUDE.md, WORKING_STATE.md y .product/context/PRODUCT.md.
+
+Necesito que me ayudes a:
+1. Revisar qué features están completas y cuáles faltan del MVP
+2. Identificar los puntos críticos a testear antes de lanzar
+3. Proponer un plan de validación con usuarios reales
+
+Stack: $STACK_STR
+Tipo: $PROJECT_TYPE
+────────────────────────────────────────────────────
+
+Pasos manuales que deberías hacer tú:
+  1. Completar .product/context/ROADMAP.md con objetivos de validación
+  2. Definir métricas de éxito en .product/context/BUSINESS.md
+  3. Configurar Sentry o similar para monitoreo de errores
+AGENT_PROMPT
+    else
+        cat << AGENT_PROMPT
+El proyecto está en Producción. Próximos pasos sugeridos:
+
+────────────────────────────────────────────────────
+Prompt para tu agente:
+
+Hola. El proyecto "$PRODUCT_NAME" está en Producción.
+
+Lee CLAUDE.md y .product/operations/RUNBOOK.md.
+
+Necesito que me ayudes con:
+1. Revisar el estado actual del sistema y métricas clave
+2. Identificar deuda técnica prioritaria
+3. Proponer el siguiente ciclo de mejoras
+
+Stack: $STACK_STR
+────────────────────────────────────────────────────
+
+Pasos manuales recomendados:
+  1. Revisar .product/operations/RELEASE_CHECKLIST.md antes de cada deploy
+  2. Mantener .product/memory/MEMORY.md actualizado con lecciones aprendidas
+  3. Ejecutar /update-memory periódicamente para limpiar contexto obsoleto
+AGENT_PROMPT
+    fi
+
     echo ""
     echo -e "  Más skills: ${CYAN}npx skills find <query>${NC}"
+    echo -e "  Instalar skill: ${CYAN}npx skills add owner/repo@skill --dir .claude/skills${NC}"
     echo ""
 }
 
