@@ -89,17 +89,17 @@ autodetect_stack() {
     pkg=$(cat package.json)
 
     # Detección por dependencias
-    echo "$pkg" | grep -qi '"next"' && AUTO_DETECTED_STACK+=("nextjs") && AUTO_DETECTED_LABELS+=("Next.js")
-    echo "$pkg" | grep -qi '"react-native"' && AUTO_DETECTED_STACK+=("react-native") && AUTO_DETECTED_LABELS+=("React Native")
-    echo "$pkg" | grep -qi '"react"' && ! echo "$pkg" | grep -qi '"react-native"' && AUTO_DETECTED_STACK+=("react") && AUTO_DETECTED_LABELS+=("React")
-    echo "$pkg" | grep -qi '"@nestjs/core"' && AUTO_DETECTED_STACK+=("nestjs") && AUTO_DETECTED_LABELS+=("NestJS")
-    echo "$pkg" | grep -qi '"typescript"' && AUTO_DETECTED_STACK+=("typescript") && AUTO_DETECTED_LABELS+=("TypeScript")
-    echo "$pkg" | grep -qi '"drizzle-orm"\|"prisma"\|"pg"\|"postgres"' && AUTO_DETECTED_STACK+=("postgres") && AUTO_DETECTED_LABELS+=("PostgreSQL")
-    echo "$pkg" | grep -qi '"stripe"' && AUTO_DETECTED_STACK+=("stripe") && AUTO_DETECTED_LABELS+=("Stripe")
-    echo "$pkg" | grep -qi '"@clerk\|next-auth\|@auth"' && AUTO_DETECTED_STACK+=("auth") && AUTO_DETECTED_LABELS+=("Auth")
-    echo "$pkg" | grep -qi '"vitest"\|"jest"\|"playwright"\|"cypress"' && AUTO_DETECTED_STACK+=("testing") && AUTO_DETECTED_LABELS+=("Testing")
-    echo "$pkg" | grep -qi '"tailwindcss"\|"@shadcn\|"@radix-ui"' && AUTO_DETECTED_STACK+=("design") && AUTO_DETECTED_LABELS+=("Design System / UI")
-    echo "$pkg" | grep -qi '"viem"\|"wagmi"\|"ethers"' && AUTO_DETECTED_STACK+=("web3") && AUTO_DETECTED_LABELS+=("Web3")
+    echo "$pkg" | grep -qi '"next"' && AUTO_DETECTED_STACK+=("nextjs") && AUTO_DETECTED_LABELS+=("Next.js") || true
+    echo "$pkg" | grep -qi '"react-native"' && AUTO_DETECTED_STACK+=("react-native") && AUTO_DETECTED_LABELS+=("React Native") || true
+    (echo "$pkg" | grep -qi '"react"' && ! echo "$pkg" | grep -qi '"react-native"') && AUTO_DETECTED_STACK+=("react") && AUTO_DETECTED_LABELS+=("React") || true
+    echo "$pkg" | grep -qi '"@nestjs/core"' && AUTO_DETECTED_STACK+=("nestjs") && AUTO_DETECTED_LABELS+=("NestJS") || true
+    echo "$pkg" | grep -qi '"typescript"' && AUTO_DETECTED_STACK+=("typescript") && AUTO_DETECTED_LABELS+=("TypeScript") || true
+    echo "$pkg" | grep -qi '"drizzle-orm"\|"prisma"\|"pg"\|"postgres"' && AUTO_DETECTED_STACK+=("postgres") && AUTO_DETECTED_LABELS+=("PostgreSQL") || true
+    echo "$pkg" | grep -qi '"stripe"' && AUTO_DETECTED_STACK+=("stripe") && AUTO_DETECTED_LABELS+=("Stripe") || true
+    echo "$pkg" | grep -qi '"@clerk\|next-auth\|@auth"' && AUTO_DETECTED_STACK+=("auth") && AUTO_DETECTED_LABELS+=("Auth") || true
+    echo "$pkg" | grep -qi '"vitest"\|"jest"\|"playwright"\|"cypress"' && AUTO_DETECTED_STACK+=("testing") && AUTO_DETECTED_LABELS+=("Testing") || true
+    echo "$pkg" | grep -qi '"tailwindcss"\|"@shadcn\|"@radix-ui"' && AUTO_DETECTED_STACK+=("design") && AUTO_DETECTED_LABELS+=("Design System / UI") || true
+    echo "$pkg" | grep -qi '"viem"\|"wagmi"\|"ethers"' && AUTO_DETECTED_STACK+=("web3") && AUTO_DETECTED_LABELS+=("Web3") || true
 
     if [ "${#AUTO_DETECTED_LABELS[@]}" -gt 0 ]; then
         print_info "Stack detectado: ${GREEN}${AUTO_DETECTED_LABELS[*]}${NC}"
@@ -117,8 +117,8 @@ extract_context_keywords() {
     if [ -n "$source_file" ]; then
         # Extraer palabras clave técnicas del archivo (primeras 50 líneas)
         CONTEXT_KEYWORDS=$(head -50 "$source_file" | \
-            grep -oiE 'react|nextjs|next\.js|typescript|postgres|stripe|auth|api|saas|cfdi|factura|pos|mobile|web3|blockchain|testing|deploy' | \
-            sort -u | tr '\n' ' ' | xargs)
+            grep -oiE 'react|nextjs|next\.js|typescript|postgres|stripe|auth|api|saas|cfdi|factura|pos|mobile|web3|blockchain|testing|deploy' 2>/dev/null | \
+            sort -u | tr '\n' ' ' | xargs || true)
         [ -n "$CONTEXT_KEYWORDS" ] && print_info "Keywords del proyecto: ${CYAN}$CONTEXT_KEYWORDS${NC}"
     fi
 }
