@@ -562,6 +562,18 @@ main() {
     done
 
     inject_rules_into_claude "$RULE1" "$RULE2" "$RULE3"
+
+    # Actualizar sección Identidad en CLAUDE.md
+    if [ -f "CLAUDE.md" ]; then
+        IDENTITY_LINE="$PRODUCT_NAME — $PROJECT_TYPE ($STACK_STR) — $PRODUCT_DESC"
+        sed -i "s|\[Reemplazar con 1-2 lineas: que es, para quien, stack principal\]|$IDENTITY_LINE|g" "CLAUDE.md" 2>/dev/null || true
+        # También actualizar TL;DR en AGENT_CONTEXT.md si existe
+        if [ -f "AGENT_CONTEXT.md" ]; then
+            TLDR_LINE="$PRODUCT_NAME: $PRODUCT_DESC ($PROJECT_TYPE — $STACK_STR)"
+            sed -i "s|\[NOMBRE DEL PRODUCTO\]: \[1 frase — que hace exactamente, para quien\]|$TLDR_LINE|g" "AGENT_CONTEXT.md" 2>/dev/null || true
+            sed -i "s|\[1 frase — que hace exactamente, para quien\]|$PRODUCT_DESC|g" "AGENT_CONTEXT.md" 2>/dev/null || true
+        fi
+    fi
     print_success "Reglas inyectadas en CLAUDE.md"
 
     setup_agent_contract "$AUTONOMY_LEVEL"
