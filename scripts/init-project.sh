@@ -490,7 +490,28 @@ main() {
         STACK_STR="${STACK_STR%,}"
     fi
 
+    # ── Tecnologías adicionales (no en la lista) ──────────────────────────
+    echo ""
+    echo -ne "${BOLD}¿Alguna tecnología extra que no esté en la lista?${NC} ${YELLOW}(Enter para omitir)${NC}: "
+    read -r EXTRA_TECHS
+
+    if [ -n "$EXTRA_TECHS" ]; then
+        # Puede ser una lista separada por comas o espacios, ej: "Supabase, Prisma, tRPC"
+        STACK_STR="$STACK_STR, $EXTRA_TECHS"
+        # Agregar cada tech como query de búsqueda en skills.sh
+        # Separar por coma o espacio
+        OLD_IFS="$IFS"
+        IFS=', '
+        for extra_tech in $EXTRA_TECHS; do
+            [ -z "$extra_tech" ] && continue
+            SELECTED_QUERIES+=("$extra_tech")
+            SELECTED_LABELS+=("$extra_tech")
+        done
+        IFS="$OLD_IFS"
+    fi
+
     [ -z "$STACK_STR" ] && STACK_STR="(no especificado)"
+    STACK_STR="${STACK_STR#, }"  # quitar coma inicial si el stack base estaba vacío
     echo ""
     echo -e "Stack: ${GREEN}${STACK_STR}${NC}"
 
