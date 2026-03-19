@@ -4,6 +4,26 @@
 
 ---
 
+## Setup inicial — `init-project.sh`
+
+Antes de empezar a programar, ejecuta el wizard de configuración:
+
+```bash
+bash scripts/init-project.sh
+```
+
+El wizard hace 5 cosas en orden:
+
+1. **Info del proyecto** — nombre, descripción, audiencia, fase (Construcción/Validación/Producción)
+2. **Reglas + autonomía** — 3 reglas inquebrantables inyectadas en `CLAUDE.md` + nivel de autonomía del agente (Explorador / Ejecutor / Piloto Automático) guardado en `AGENT_CONTRACT.md`
+3. **Stack tecnológico** — pregunta si es Frontend / Backend / FullStack, muestra opciones contextuales, permite agregar tecnologías extra
+4. **Skills desde skills.sh** — busca hasta 3 skills por tecnología, muestra installs y sección por stack, los instala localmente en `.claude/skills/` (no globalmente)
+5. **Prompt para el agente** — genera un prompt listo para copiar y pegar en Claude Code según la fase del proyecto
+
+Al terminar, todos los placeholders de `CLAUDE.md`, `AGENT_CONTEXT.md` y `WORKING_STATE.md` están reemplazados con tu información real.
+
+---
+
 ## Al abrir Claude Code (cada sesión)
 
 **Carga automática — sin que hagas nada:**
@@ -12,27 +32,36 @@
 CLAUDE.md  →  El agente lo lee primero, siempre
 ```
 
-Este archivo es el "sistema nervioso central". Contiene quién eres, en qué fase estás, las reglas inquebrantables, y la lista de skills disponibles. Claude Code lo carga solo al iniciar.
+Este archivo es el "sistema nervioso central". Contiene identidad del producto, fase, reglas inquebrantables, protocolo de sesión y lista de skills disponibles. Claude Code lo carga solo al iniciar.
 
 ---
 
 ## Al escribir `/session-start`
 
-El skill `session-start` toma el control y carga:
+El skill `session-start` toma el control y:
 
+**Paso 0 — Detectar compactación (PRIMERO)**
+Si el mensaje tiene `<summary>` o el usuario dice "dónde estábamos" → activa el skill `working-buffer` en modo Recovery antes de cualquier otra cosa.
+
+**Paso 1 — Cargar contexto base:**
 ```
-WORKING_STATE.md              →  ¿Dónde quedamos? ¿Qué está en progreso?
-AGENT_CONTEXT.md              →  Mapa de contexto (qué cargar según la tarea)
-.product/memory/MEMORY.md     →  Hechos duraderos del producto
+WORKING_STATE.md                  →  ¿Dónde quedamos? ¿Qué está en progreso?
+.product/memory/SESSION-STATE.md  →  WAL activo (correcciones y decisiones recientes)
+.product/memory/MEMORY.md         →  Hechos duraderos del producto
+AGENT_CONTEXT.md                  →  Mapa de progressive disclosure
 ```
 
-Con esto el agente ya sabe: qué estabas construyendo, qué decisiones se tomaron, y qué sigue.
+**Paso 2 — Verificar working-buffer:**
+Si `.product/memory/working-buffer.md` tiene contenido de sesión anterior, extraer contexto y limpiarlo para la nueva sesión.
+
+**Paso 3 — Log diario:**
+Si existe `.product/memory/[fecha-de-hoy].md`, leerlo para contexto fresco de hoy.
 
 ---
 
 ## Mientras programas (bajo demanda)
 
-El agente carga **solo lo que necesita** según el tipo de tarea. No carga todo de golpe — eso desperdiciaría contexto:
+El agente carga **solo lo que necesita** según el tipo de tarea:
 
 | Tipo de tarea | Archivos que se cargan |
 |--------------|------------------------|
@@ -43,20 +72,89 @@ El agente carga **solo lo que necesita** según el tipo de tarea. No carga todo 
 
 ---
 
+## WAL Protocol — Write-Ahead Log
+
+Cuando el usuario dice algo con correcciones, nombres propios, decisiones o valores específicos, el agente escribe en `SESSION-STATE.md` **antes** de responder.
+
+```
+Usuario: "No, quiero usar Prisma no Drizzle"
+→ Agente escribe en SESSION-STATE.md: "ORM: Prisma (no Drizzle)"
+→ LUEGO responde
+```
+
+Esto evita perder detalles importantes cuando el contexto se compacta.
+
+---
+
+## Sistema de memoria anti-compactación (`working-buffer`)
+
+Cuando la sesión es larga y el contexto está al límite:
+
+### Activar buffer (`/danger-zone`)
+El agente crea/sobrescribe `.product/memory/working-buffer.md` y empieza a registrar cada intercambio:
+
+```markdown
+## [HH:MM] Usuario
+[Resumen de 1 línea]
+
+## [HH:MM] Agente
+[Lo que se hizo + detalles clave]
+```
+
+### Recovery post-compactación (`/recover`)
+Si Claude Code compacta la sesión, el agente lee en este orden:
+
+```
+1. working-buffer.md   →  intercambios más recientes (la fuente más fresca)
+2. SESSION-STATE.md    →  decisiones y correcciones del día
+3. WORKING_STATE.md    →  estado general del proyecto
+4. YYYY-MM-DD.md       →  log crudo de hoy
+```
+
+Y presenta un resumen con el último punto exacto donde quedaron, **sin preguntar "¿qué estábamos haciendo?"**
+
+---
+
+## Sistema de memoria en dos velocidades (`daily-log`)
+
+```
+Velocidad 1 — Log diario (crudo, append-only):
+  .product/memory/YYYY-MM-DD.md
+  → Todo lo que pasó hoy: tareas, decisiones, errores
+  → Sin límite de tokens, sin editar el pasado
+  → El agente escribe aquí durante y al final de cada sesión
+
+Velocidad 2 — MEMORY.md (destilado, curado):
+  .product/memory/MEMORY.md
+  → Solo lo que vale recordar siempre
+  → Máx ~3,000 tokens
+  → Se actualiza por destilación, no por append
+```
+
+### Destilación (`/distill-memory`)
+Cada 3-5 días de trabajo activo (o cuando MEMORY.md supera ~2,500 tokens):
+
+1. El agente lee los últimos logs diarios
+2. Identifica qué merece ir a MEMORY.md (decisiones vigentes, patrones, lecciones)
+3. Propone el diff al usuario: qué añadir, actualizar, archivar
+4. Solo aplica con aprobación explícita
+
+---
+
 ## Al terminar una tarea
 
 El agente actualiza:
 
 ```
 WORKING_STATE.md                  →  Qué se hizo, qué sigue, qué bloquea
+.product/memory/SESSION-STATE.md  →  WAL (correcciones/decisiones de la sesión)
 ```
 
 Y si surgió algo importante:
 
 ```
-.product/memory/MEMORY.md         →  Decisiones duraderas
-.product/memory/SESSION-STATE.md  →  Estado activo (WAL — Write-Ahead Log)
-.product/context/DECISIONS.md     →  ADRs (decisiones arquitectónicas)
+.product/memory/MEMORY.md         →  Decisiones duraderas (requiere aprobación)
+.product/context/DECISIONS.md     →  ADRs (decisiones arquitectónicas formales)
 ```
 
 ---
@@ -75,62 +173,58 @@ Así la próxima sesión (en cualquier IDE) arranca con el estado actual sin que
 
 ## Al escribir `/session-end`
 
-Flush de memoria:
+Flush completo de memoria:
 
 ```
 WORKING_STATE.md           →  Estado final del día
-.product/memory/MEMORY.md  →  Hechos nuevos que valen guardar
+YYYY-MM-DD.md              →  Entrada de log con resumen de la sesión
+working-buffer.md          →  Entrada de cierre, listo para próxima sesión
+MEMORY.md                  →  Propuesta de hechos nuevos (si los hay)
 ```
+
+Si MEMORY.md está cerca del límite, sugiere ejecutar `/distill-memory`.
 
 ---
 
 ## Niveles de autonomía del agente
 
-Define cuánta libertad tiene el agente para actuar sin pedirte permiso. Se configura en `.product/contracts/AGENT_CONTRACT.md`.
+Configurado en `.product/contracts/AGENT_CONTRACT.md` durante el wizard.
 
 ### 🧭 Explorador
 **"Propone, no actúa"**
 
-El agente analiza y te presenta opciones — pero no escribe una línea hasta que tú apruebes.
-
 > *"Encontré 3 formas de estructurar el auth. ¿Cuál prefieres?"*
 
-**Cuándo usarlo:** Proyectos nuevos, decisiones arquitectónicas abiertas, o cuando el costo de un error es alto.
-
----
+**Cuándo usarlo:** Proyectos nuevos, decisiones arquitectónicas abiertas, costo de error alto.
 
 ### ⚙️ Ejecutor *(recomendado)*
-**"Implementa lo que está claro, pregunta lo que es ambiguo"**
+**"Implementa lo claro, pregunta lo ambiguo"**
 
-Implementa features cuando las specs están definidas. Solo interrumpe si hay ambigüedad real.
+> *"Implementé el CRUD con Zod. Hay una decisión sobre soft delete — ¿flag o tabla separada?"*
 
-> *"Implementé el CRUD de clientes con validación Zod. Hay una decisión sobre soft delete — ¿flag o tabla separada?"*
-
-**Cuándo usarlo:** El 90% del tiempo. Stack definido, arquitectura clara, quieres avanzar sin micromanagear.
-
----
+**Cuándo usarlo:** El 90% del tiempo. Stack definido, arquitectura clara.
 
 ### 🚀 Piloto Automático
 **"Actúa, entrega, informa"**
 
-Máxima autonomía. Implementa, escribe tests, hace commits y propone el PR completo. Tú solo revisas el resultado final.
-
 > *"Feature de exportar CSV lista. Tests pasando. PR #12 abierto."*
 
-**Cuándo usarlo:** Tareas rutinarias de bajo riesgo donde ya confías totalmente en el agente y el patrón está establecido.
+**Cuándo usarlo:** Tareas rutinarias de bajo riesgo, confianza total establecida.
 
 ---
 
-## El diagrama mental
+## El diagrama mental completo
 
 ```
 Siempre activo:
   CLAUDE.md ──────────────────── Bootstrap (reglas, identidad, skills)
 
 Al iniciar sesión:
+  working-buffer.md ──────────── Detectar compactación (primero)
   WORKING_STATE.md ────────────── ¿Dónde quedamos?
-  AGENT_CONTEXT.md ────────────── Mapa de contexto
-  .product/memory/MEMORY.md ───── Historia del producto
+  SESSION-STATE.md ────────────── WAL activo (correcciones del día)
+  MEMORY.md ───────────────────── Historia destilada del producto
+  AGENT_CONTEXT.md ────────────── Mapa de progressive disclosure
 
 Bajo demanda (según tarea):
   .product/architecture/   ──────── Estructura, componentes, riesgos
@@ -141,17 +235,23 @@ Bajo demanda (según tarea):
 
 Se actualiza constantemente:
   WORKING_STATE.md ────────────── Después de cada tarea
-  SESSION-STATE.md ────────────── WAL (correcciones, decisiones del día)
-  .product/memory/MEMORY.md ───── Hechos que vale recordar siempre
+  SESSION-STATE.md ────────────── WAL — antes de responder correcciones
+  working-buffer.md ──────────── En zona de peligro: cada intercambio
+  YYYY-MM-DD.md ──────────────── Log crudo append-only
+  MEMORY.md ───────────────────── Por destilación, con aprobación
 ```
 
 ---
 
-## La clave del sistema
+## Precedencia de memoria
 
-AXIS evita que el agente cargue miles de tokens de contexto en cada turno. En cambio, carga por capas — solo lo relevante para la tarea actual. Eso mantiene al agente enfocado y no desperdicia tu ventana de contexto.
+Cuando dos fuentes tienen información contradictoria:
 
-**Progressive disclosure:** el agente carga más contexto solo cuando lo necesita, no todo de golpe.
+1. **ADRs en `DECISIONS.md`** — máxima autoridad (decisiones formales)
+2. **`MEMORY.md`** — fuente de verdad para hechos duraderos
+3. **Logs diarios `YYYY-MM-DD.md`** — registro temporal
+4. **`SESSION-STATE.md`** — estado operativo de hoy
+5. **`working-buffer.md`** — más reciente, solo para recovery
 
 ---
 
@@ -159,10 +259,30 @@ AXIS evita que el agente cargue miles de tokens de contexto en cada turno. En ca
 
 | Archivo | Quién lo escribe | Cuándo se actualiza |
 |---------|-----------------|---------------------|
-| `CLAUDE.md` | Tú (+ git hook auto-sync) | Al inicializar y en cada commit |
+| `CLAUDE.md` | Tú + git hook | Al inicializar y en cada commit |
 | `WORKING_STATE.md` | El agente | Después de cada tarea |
 | `AGENT_CONTEXT.md` | Tú / el agente | Cuando cambia el mapa de contexto |
-| `.product/memory/MEMORY.md` | El agente | Cuando hay hechos duraderos nuevos |
-| `.product/memory/SESSION-STATE.md` | El agente | WAL — cada corrección o decisión |
+| `.product/memory/MEMORY.md` | El agente (con aprobación) | Por destilación periódica |
+| `.product/memory/SESSION-STATE.md` | El agente | WAL — antes de responder |
+| `.product/memory/working-buffer.md` | El agente | En zona de peligro o recovery |
+| `.product/memory/YYYY-MM-DD.md` | El agente | Append durante/al final de sesión |
 | `.product/context/DECISIONS.md` | El agente | Al tomar decisiones arquitectónicas |
 | `.product/contracts/AGENT_CONTRACT.md` | `init-project.sh` / tú | Al configurar nivel de autonomía |
+
+## Comandos disponibles
+
+| Comando | Qué hace |
+|---------|----------|
+| `/session-start` | Carga contexto, detecta compactación, reporta estado |
+| `/session-end` | Flush de memoria, log diario, cierre de sesión |
+| `/danger-zone` | Activa working buffer anti-compactación |
+| `/recover` | Recovery post-compactación desde el buffer |
+| `/daily-log` | Añade entrada al log del día |
+| `/distill-memory` | Destila logs diarios a MEMORY.md (con aprobación) |
+| `/update-memory` | Revisa y limpia MEMORY.md |
+| `/sync-context` | Verifica integridad del contexto |
+| `/import-jira` | Importa Epic/Stories/Tasks de Jira |
+| `/sync-jira` | Sincroniza tasks con Jira |
+| `/distill-memory` | Propone actualización de MEMORY.md desde logs |
+| `commit-and-pr` | Hace commits y PRs con formato correcto |
+| `adr` | Documenta decisiones arquitectónicas |
