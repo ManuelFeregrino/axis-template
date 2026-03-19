@@ -33,6 +33,7 @@
 ## Skills Disponibles
 | Skill | Cuando activarlo |
 |-------|-----------------|
+| init | `/init` — Wizard de configuracion inicial del proyecto |
 | session-start | `/session-start` — Cargar contexto e iniciar sesion (incluye recovery) |
 | session-end | `/session-end` — Memory flush, log diario y cierre de sesion |
 | working-buffer | `/danger-zone` — Activar buffer anti-compactacion / `/recover` — Recovery post-compactacion |
