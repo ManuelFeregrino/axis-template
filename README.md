@@ -19,9 +19,19 @@ git init
 chmod +x scripts/*.sh
 ./scripts/install-git-hooks.sh
 
-# 4. Reemplazar los placeholders [NOMBRE DEL PRODUCTO], [NOMBRE], etc.
-#    en CLAUDE.md, WORKING_STATE.md, y los archivos en .product/
+# 4. 🚀 Ejecutar el wizard de configuración
+bash scripts/init-project.sh
+```
 
+El wizard te guiará para:
+- Configurar el nombre, descripción y fase del proyecto
+- Seleccionar tu stack tecnológico
+- Buscar e instalar skills relevantes desde [skills.sh](https://skills.sh) con un solo comando
+- Llenar automáticamente todos los placeholders en `CLAUDE.md`, `AGENT_CONTEXT.md` y `WORKING_STATE.md`
+
+> **Sin wizard:** puedes reemplazar manualmente los placeholders `[NOMBRE DEL PRODUCTO]`, `[NOMBRE]`, etc. en `CLAUDE.md`, `WORKING_STATE.md`, y los archivos en `.product/`
+
+```bash
 # 5. Primer commit
 git add .
 git commit -m "init: inicializa proyecto con AXIS"
